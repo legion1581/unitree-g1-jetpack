@@ -15,24 +15,6 @@ What it sets up:
 - **Ready-to-use rootfs** — login user, hostname, autologin, static IP, and the
   **RTL8852BU WiFi + Bluetooth** driver baked in (modules + firmware).
 
-The patched **DTB is distributed** (in `dtb/`), not generated — no `dtc`, no kernel-DTS surgery.
-
-## One version per branch
-
-Each JetPack version lives on its **own branch**. The script reads `version.env` and the
-asset folders (`dtb/`, `firmware/`, `modules/`, `overlay/`) from the repo root, so checking
-out a branch is how you pick the version to build.
-
-| JetPack | L4T    | branch  | status     |
-|---------|--------|---------|------------|
-| 6.2.2   | 36.5.0 | `6.2.2` | ✅ working |
-| 5.1.6   | 35.6.4 | `5.1.6` | planned    |
-| 7.2     | 39.2.0 | `7.2`   | planned    |
-
-```bash
-git checkout 6.2.2
-```
-
 ## Requirements
 
 - An **x86_64 Ubuntu host** with `sudo` (the build/flash tooling is NVIDIA's; the rootfs
@@ -71,18 +53,6 @@ options:  --yes   skip the confirmation prompt on destructive operations
 
 Most operations need `sudo`; the script elevates the privileged steps itself.
 
-## What `init` does
-
-1. **Download** the Driver Package + sample rootfs `.tbz2` from NVIDIA → `downloads/` (cached).
-2. **Extract** into `bsp/Linux_for_Tegra`, populate the rootfs, run `apply_binaries.sh`.
-3. **Patch the BSP** — copy the carrier-patched kernel DTB over the stock one and set the
-   MB2 BCT `cvb_eeprom_read_size = 0x0`.
-4. **Customize the rootfs** — create the login user (oem-config bypassed, license accepted),
-   set hostname + autologin, write a NetworkManager static-IP profile, and install the
-   RTL8852BU WiFi/BT modules + firmware + autoload/blacklist overlay.
-
-The result is a ready-to-flash `bsp/Linux_for_Tegra`.
-
 ## Repo layout
 
 ```
@@ -101,8 +71,6 @@ bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
 ## Acknowledgements
 
 A big thank you to RoboLegion community! Visit us at [RoboLegion](https://robolegion.com) for more information and support.
-
-Built on NVIDIA's Jetson Linux (L4T) BSP, and ships the Realtek RTL8852BU WiFi/BT driver.
 
 ## Support
 
