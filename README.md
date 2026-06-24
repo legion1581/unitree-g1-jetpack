@@ -1,9 +1,9 @@
-# Unitree G1 Jetpack 6.2.2
+# Unitree G1 Jetpack 5.1.6
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image
 for the **Unitree G1 custom carrier** (Jetson Orin NX).
 
-**JetPack 6.2.2** · L4T 36.5.0 · kernel 5.15.185-tegra
+**JetPack 5.1.6** · L4T 35.6.4 · kernel 5.10.216-tegra
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
@@ -30,7 +30,7 @@ What it sets up:
 ## Quick start
 
 ```bash
-git checkout 6.2.2
+git checkout 5.1.6
 
 # 1. build a flash-ready BSP (download + extract + patch) into ./bsp
 ./g1_custom_jetpack.sh init
