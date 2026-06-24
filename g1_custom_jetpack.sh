@@ -186,15 +186,21 @@ rootfs_customize() {
     } | $SUDO tee "$nm" >/dev/null
     $SUDO chmod 600 "$nm"; $SUDO chown root:root "$nm"
 
-    # 4c. WiFi + BT: prebuilt modules + firmware + autoload/blacklist overlay
-    log "installing RTL8852BU WiFi/BT (modules + firmware + overlay)"
-    $SUDO mkdir -p "$rfs/lib/modules/$KVER/updates"
-    $SUDO cp -a "$HERE/modules/." "$rfs/lib/modules/$KVER/updates/"
-    $SUDO mkdir -p "$rfs/lib/firmware"
-    $SUDO cp -f "$HERE"/firmware/* "$rfs/lib/firmware/"
-    $SUDO cp -a "$HERE/overlay/." "$rfs/"
-    log "  depmod $KVER"
-    $SUDO depmod -b "$rfs" "$KVER"
+    # 4c. WiFi + BT: prebuilt modules + firmware + autoload/blacklist overlay.
+    #     Skipped when modules/ has no .ko yet (e.g. a new kernel whose driver must
+    #     first be compiled on-device, then dropped into modules/ + firmware/).
+    if [ -n "$(find "$HERE/modules" -name '*.ko' 2>/dev/null | head -1)" ]; then
+        log "installing RTL8852BU WiFi/BT (modules + firmware + overlay)"
+        $SUDO mkdir -p "$rfs/lib/modules/$KVER/updates"
+        $SUDO cp -a "$HERE/modules/." "$rfs/lib/modules/$KVER/updates/"
+        $SUDO mkdir -p "$rfs/lib/firmware"
+        $SUDO cp -f "$HERE"/firmware/* "$rfs/lib/firmware/"
+        $SUDO cp -a "$HERE/overlay/." "$rfs/"
+        log "  depmod $KVER"
+        $SUDO depmod -b "$rfs" "$KVER"
+    else
+        warn "no .ko in modules/ — skipping WiFi/BT (compile on-device, then add to modules/+firmware/)"
+    fi
 }
 
 # ============================================================ backup/restore =====
