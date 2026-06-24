@@ -1,0 +1,11 @@
+# downloaded NVIDIA tarballs and extracted/patched BSP trees (multi-GB, rebuilt by `init`)
+/downloads/
+/bsp/
+
+# backups
+/backups/
+
+# editor / OS noise
+*.swp
+*~
+.DS_Store
