@@ -10,6 +10,9 @@ differently (so recovery RNDIS and the USB host ports don't work out of the box)
 onboard WiFi/BT needs an out-of-tree driver. This repo wraps NVIDIA's BSP with those carrier
 fixes plus a few rootfs tweaks, so a single `init` → `flash` gives you a working board.
 
+> Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
+> SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
+
 What it sets up:
 
 - **Carrier-patched device tree** — corrected USB3 wiring so recovery RNDIS + USB host ports work.
