@@ -51,7 +51,7 @@ The PWR/REC buttons and the flashing port are on the NX board inside the G1's ch
 
 1. Power on the G1; wait until **all three power LEDs are steadily lit**.
 2. Press and **hold PWR + REC together for ~2 s** — the LEDs go from three steady
-   lights to one light (or all off).
+   lights to two light (or all off).
 3. Release **PWR**.
 4. Wait ~2 s.
 5. Release **REC**.
@@ -91,9 +91,8 @@ version.env            all version knobs — URLs, board conf, kernel version, u
 dtb/                   carrier-patched kernel DTB        -> kernel/dtb + bootloader
 firmware/              rtl8852bu_fw, rtl8852bu_config    -> /lib/firmware/
 modules/               8852bu.ko, rtk_btusb.ko           -> /lib/modules/<KVER>/updates/
-overlay/               rootfs overlay copied onto /
-                         etc/modprobe.d, etc/modules-load.d   (WiFi/BT autoload + blacklist)
-                         home/unitree/Desktop/RoboLegion/     (WiFi/BT .deb, chowned to the user)
+overlay/               rootfs overlay copied onto /  (etc/modprobe.d, etc/modules-load.d
+                         — WiFi/BT autoload + blacklist)
 downloads/             cached NVIDIA tarballs            (git-ignored)
 bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
 ```

@@ -195,11 +195,6 @@ rootfs_customize() {
     $SUDO cp -a "$HERE/overlay/." "$rfs/"
     log "  depmod $KVER"
     $SUDO depmod -b "$rfs" "$KVER"
-
-    # the overlay ships user-home files (overlay/home/$USERNAME/Desktop/RoboLegion/*.deb);
-    # the copy lands them root-owned, so give the home back to the login user (uid 1000).
-    # NOTE: the overlay home path is hardcoded to 'unitree' — keep USERNAME in sync.
-    [ -d "$rfs/home/$USERNAME" ] && $SUDO chown -R 1000:1000 "$rfs/home/$USERNAME"
 }
 
 # ============================================================ backup/restore =====
