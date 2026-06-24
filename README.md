@@ -1,13 +1,12 @@
-# unitree_jetson_jetpack
+# Unitree G1 Jetpack
 
 One script to build, back up, restore and flash a custom **JetPack** image for the
 **Unitree G1 custom carrier**.
 
-It downloads a stock NVIDIA BSP, drops in **pre-patched DTBs** (carrier USB3 wiring
+It downloads a stock NVIDIA BSP, drops in **pre-patched DTB** (carrier USB3 wiring
 so recovery RNDIS + USB work), applies a small set of rootfs tweaks (login user,
 static IP, WiFi/BT driver), and flashes over the recovery initrd.
 
-> Patched **DTBs are distributed**, not generated — no `dtc`, no kernel-DTS surgery.
 
 ## One version per branch
 
@@ -69,12 +68,11 @@ Most operations need `sudo`; the script elevates the privileged steps itself.
 ```
 g1_custom_jetpack.sh          the one script (version-agnostic; same on every branch)
 version.env                   URLs, board conf, kernel ver, user/IP — all version knobs
-dtb/                          pre-patched kernel DTBs (copied over the stock ones)
+dtb/                          pre-patched kernel DTB (copied over the stock one)
 firmware/                     rtl8852bu_fw, rtl8852bu_config  -> /lib/firmware/
 modules/                      8852bu.ko, rtk_btusb.ko         -> /lib/modules/<KVER>/updates/
-overlay/                      system rootfs overlay, copied onto /   (etc/modprobe.d, modules-load.d ...)
-home/                         user-home overlay, copied onto /home/<USERNAME>/ and chowned
-                              to the login user  (e.g. home/Desktop/RoboLegion/*.deb)
+overlay/                      rootfs overlay copied onto /  (etc/modprobe.d, modules-load.d,
+                              home/unitree/Desktop/RoboLegion/*.deb — chowned to the user)
 downloads/                    cached tarballs            (git-ignored)
 bsp/Linux_for_Tegra           extracted + patched BSP    (git-ignored)
 ```
