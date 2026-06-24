@@ -98,19 +98,6 @@ downloads/             cached NVIDIA tarballs            (git-ignored)
 bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
 ```
 
-## Adding a JetPack version
-
-Branch off and swap the per-version assets:
-
-```bash
-git checkout -b 5.1.6
-```
-
-- edit `version.env` (download URLs, `L4T_VER`, `KVER`, flash-config paths, DTB name);
-- replace `dtb/` with that version's carrier-patched DTB;
-- rebuild the WiFi/BT `modules/` against that kernel and drop them in;
-- leave `g1_custom_jetpack.sh` untouched — it's version-agnostic.
-
 ## Acknowledgements
 
 A big thank you to RoboLegion community! Visit us at [RoboLegion](https://robolegion.com) for more information and support.
