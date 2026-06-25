@@ -3,35 +3,42 @@
 # g1_custom_jetpack.sh — build, back up, restore and flash a JetPack image for the
 # Unitree G1 custom carrier board (Jetson Orin NX, p3767 on a p3768-class carrier).
 #
-#   ./g1_custom_jetpack.sh [-j <ver>] <command> [options]
+#   ./g1_custom_jetpack.sh [-j <ver>] <command> [args]
 #
 # JetPack version:
-#   -j, --jetpack <ver>   which JetPack to act on (default: 6.2.2). Each version
-#                         lives under versions/<ver>/  (env: G1_JP=<ver> also works).
+#   -j, --jetpack <ver>   which JetPack to act on. Each lives under versions/<ver>/.
+#                         Defaults come from ./.env (DEFAULT_JP for init/flash/clean,
+#                         BACKUP_JP for backup/restore).  (env: G1_JP=<ver> also works.)
 #                         e.g.  -j 5.1.6   |   -j 6.2.2
 #
 # Commands:
 #   init                 download + extract + patch a flash-ready BSP into bsp/<ver>
-#   flash [all|qspi]     flash via the recovery initrd (default: all = QSPI+NVMe)
-#   backup  [dir]        back up every partition over the initrd (default: backups/<ver>)
-#   restore [dir]        restore a backup over the initrd        (default: backups/<ver>)
+#   flash [all|qspi]     flash the chosen JetPack (auto-runs init if needed)
+#   backup  [name|dir]   back up every partition over the initrd, into a timestamped,
+#                        version-tagged folder under backups/ (auto-runs init)
+#   restore [name|dir]   restore a backup over the initrd (auto-runs init). With no
+#                        arg, picks from backups/ (menu if more than one).
 #   status               show recovery state (APX / RNDIS) — version-independent
-#   clean [all|bsp|backup]   remove this version's BSP and/or backups (keeps downloads)
+#   clean [all|bsp|backup]   remove this version's BSP and/or ALL backups (keeps downloads)
 #
 # Options:
 #   --yes           skip the confirmation prompt on destructive operations
 #   -h, --help
 #
-# Patched **DTBs are distributed** (versions/<ver>/dtb/), not generated — no
-# device-tree compiler or kernel-DTS surgery here.
+# BSP patches are **named files** under versions/<ver>/patches/*.sh (sourced in
+# sorted order by patch_bsp) — so it's obvious what each one changes. Patched DTBs
+# are **distributed** (versions/<ver>/dtb/), not generated.
 #
 # Layout:
 #   g1_custom_jetpack.sh                   this script (version-aware)
+#   .env                                   DEFAULT_JP / BACKUP_JP
 #   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
-#   versions/<ver>/{dtb,firmware,modules,overlay}   per-version patch set
+#   versions/<ver>/patches/*.sh            BSP patch steps (named, self-documenting)
+#   versions/<ver>/{dtb,firmware,modules,overlay}   per-version payload
 #   misc/                                  WiFi/BT driver sources (shared)
 #   downloads/<ver>/                       cached NVIDIA .tbz2 tarballs  (git-ignored)
 #   bsp/<ver>/Linux_for_Tegra              extracted + patched BSP       (git-ignored)
+#   backups/<ts>_jp<ver>_l4t<ver>/         partition dumps               (git-ignored)
 #
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,24 +47,28 @@ log()  { printf '\033[36m[*]\033[0m %s\n' "$*"; }
 ok()   { printf '\033[32m[+]\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[!]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
-c_grn(){ printf '\033[32m%s\033[0m' "$*"; }
 
 usage() {
     sed -n '3,/^set -euo pipefail/p' "$0" | sed -e '/^set -euo pipefail/d' -e 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
+# --- repo config (.env) ----------------------------------------------------------
+DEFAULT_JP="6.2.2"      # JetPack when -j is omitted (init/flash/clean)
+BACKUP_JP="6.2.2"       # JetPack BSP used by backup/restore
+# shellcheck source=/dev/null
+[ -f "$HERE/.env" ] && . "$HERE/.env"
+
 # --- arg parsing -----------------------------------------------------------------
-DEFAULT_JP="6.2.2"
-JP="${G1_JP:-}"                       # -j/--jetpack overrides; else env G1_JP; else default
+JP="${G1_JP:-}"                       # -j/--jetpack overrides; else env G1_JP; else .env default
 YES=false; POS=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        -j|--jetpack)   [ $# -ge 2 ] || die "-j/--jetpack needs a version"; JP="$2"; shift 2;;
+        -j|--jetpack)     [ $# -ge 2 ] || die "-j/--jetpack needs a version"; JP="$2"; shift 2;;
         --jetpack=*|-j=*) JP="${1#*=}"; shift;;
-        --yes)          YES=true; shift;;
-        -h|--help|help) usage 0;;
-        *)              POS+=("$1"); shift;;
+        --yes)            YES=true; shift;;
+        -h|--help|help)   usage 0;;
+        *)                POS+=("$1"); shift;;
     esac
 done
 set -- "${POS[@]:-}"
@@ -65,26 +76,34 @@ set -- "${POS[@]:-}"
 CMD="$1"; shift
 [ "$CMD" = help ] && usage 0
 
-# --- pick + validate the JetPack version -----------------------------------------
-: "${JP:=$DEFAULT_JP}"
-VERSIONS="$HERE/versions"
-VDIR="$VERSIONS/$JP"
-if [ ! -f "$VDIR/version.env" ]; then
-    avail="$( [ -d "$VERSIONS" ] && (cd "$VERSIONS" && ls -d */ 2>/dev/null | tr -d /) | tr '\n' ' ')"
-    die "unknown JetPack '$JP' — no versions/$JP/version.env. Available: ${avail:-<none>}. Use -j <ver>."
-fi
-# shellcheck source=/dev/null
-source "$VDIR/version.env"
-
-# per-version build locations (all git-ignored)
-DOWNLOADS="$HERE/downloads/$JP"
-BSP_PARENT="$HERE/bsp/$JP"
-LFT="$BSP_PARENT/Linux_for_Tegra"
-BACKUP_DIR="$HERE/backups/$JP"        # default backup/restore location (git-ignored)
-
 SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO="sudo"
+BACKUPS="$HERE/backups"               # all dumps live here (timestamped + version-tagged)
+INIT_MARKER=".g1-init-done"           # written at end of cmd_init; ensure_bsp checks it
 
-log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]"
+# --- resolve + validate the JetPack version (all commands except status) ---------
+if [ "$CMD" != status ]; then
+    case "$CMD" in
+        backup|restore) : "${JP:=$BACKUP_JP}";;   # device-state ops -> the BACKUP_JP BSP
+        *)              : "${JP:=$DEFAULT_JP}";;
+    esac
+    VERSIONS="$HERE/versions"; VDIR="$VERSIONS/$JP"
+    if [ ! -f "$VDIR/version.env" ]; then
+        avail="$( [ -d "$VERSIONS" ] && (cd "$VERSIONS" && ls -d */ 2>/dev/null | tr -d /) | tr '\n' ' ')"
+        die "unknown JetPack '$JP' — no versions/$JP/version.env. Available: ${avail:-<none>}. Use -j <ver>."
+    fi
+    # shellcheck source=/dev/null
+    source "$VDIR/version.env"
+
+    DOWNLOADS="$HERE/downloads/$JP"
+    BSP_PARENT="$HERE/bsp/$JP"
+    LFT="$BSP_PARENT/Linux_for_Tegra"
+    BR="$LFT/tools/backup_restore"
+
+    case "$CMD" in
+        backup|restore) log "JetPack $JP BSP for backup/restore — L4T ${L4T_VER}, kernel ${KVER}";;
+        *)              log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]";;
+    esac
+fi
 
 need() { command -v "$1" >/dev/null || die "missing tool: $1"; }
 confirm() {
@@ -132,7 +151,7 @@ cmd_init() {
         log "extracting BSP -> $LFT"
         tar xf "$bsp_tb" -C "$BSP_PARENT"
     else
-        warn "BSP already extracted at $LFT (reusing; delete it to start clean)"
+        warn "BSP already extracted at $LFT (reusing; 'clean bsp' to start fresh)"
     fi
     log "extracting sample rootfs"
     $SUDO tar xpf "$rfs_tb" -C "$LFT/rootfs/"
@@ -141,36 +160,31 @@ cmd_init() {
     log "running apply_binaries.sh"
     ( cd "$LFT" && $SUDO ./apply_binaries.sh )
 
-    # 3. BSP patches: drop in the patched DTBs + the MB2 boot fix
+    # 3. BSP patches: named *.sh steps under versions/<ver>/patches/
     patch_bsp
 
     # 4. rootfs: user, static IP, wifi/bt
     rootfs_customize
 
+    touch "$LFT/$INIT_MARKER" 2>/dev/null || $SUDO touch "$LFT/$INIT_MARKER"
     ok "BSP ready: $LFT"
     echo "    next:  ./g1_custom_jetpack.sh -j $JP flash all   (board in RCM)"
 }
 
+# Generic: run every versions/<ver>/patches/*.sh in sorted order. Each is sourced
+# (so it shares $LFT/$VDIR/$DTBS/$SUDO and log()/die()) and named to say what it does.
 patch_bsp() {
-    log "patching BSP (DTBs + MB2)"
-    # 3a. distribute the patched kernel DTBs over the stock ones (kernel/dtb + the
-    #     bootloader copy flash.sh signs from).
-    local d
-    for d in $DTBS; do
-        [ -f "$VDIR/dtb/$d" ] || die "missing shipped DTB: versions/$JP/dtb/$d"
-        $SUDO cp -f "$VDIR/dtb/$d" "$LFT/kernel/dtb/$d"
-        [ -f "$LFT/bootloader/$d" ] && $SUDO cp -f "$VDIR/dtb/$d" "$LFT/bootloader/$d"
-        log "  DTB <- $d"
+    local pdir="$VDIR/patches" p applied=0
+    [ -d "$pdir" ] || { warn "no patches/ in versions/$JP — BSP left stock"; return 0; }
+    log "applying BSP patches from versions/$JP/patches/"
+    for p in "$pdir"/*.sh; do
+        [ -f "$p" ] || continue                 # glob didn't match -> nothing to do
+        log "patch: $(basename "$p")"
+        # shellcheck source=/dev/null
+        source "$p"
+        applied=$((applied+1))
     done
-    # 3b. MB2 EEPROM boot fix: tell MB2 to read 0 bytes of carrier EEPROM (the
-    #     custom carrier has none). This is a flashing BCT (.dts), not a kernel DTS.
-    local f n=0
-    while IFS= read -r f; do
-        if grep -q 'cvb_eeprom_read_size = <0x0>;' "$f"; then continue; fi
-        $SUDO sed -i 's/cvb_eeprom_read_size = <0x[0-9a-fA-F]*>;/cvb_eeprom_read_size = <0x0>;/' "$f"
-        n=$((n+1))
-    done < <(find "$LFT/bootloader" -maxdepth 3 -name 'tegra234-mb2-bct-misc-p3767-0000.dts' 2>/dev/null)
-    log "  MB2 cvb_eeprom_read_size -> 0x0 ($n file(s))"
+    [ "$applied" -gt 0 ] || warn "versions/$JP/patches/ had no *.sh files"
 }
 
 rootfs_customize() {
@@ -237,30 +251,73 @@ rootfs_customize() {
     fi
 }
 
+# Build the BSP for $JP if it isn't ready — lets flash/backup/restore self-init.
+ensure_bsp() {
+    if [ -f "$LFT/$INIT_MARKER" ]; then
+        log "using existing BSP: $LFT"
+    else
+        log "no built BSP for JetPack $JP — running init first"
+        cmd_init
+    fi
+}
+
 # ============================================================ backup/restore =====
-BR="$LFT/tools/backup_restore"
+# Echo the chosen backup dir on stdout; the menu (if any) goes to stderr.
+pick_backup() {
+    local list=() d
+    while IFS= read -r d; do list+=("$d"); done < <(
+        find "$BACKUPS" -mindepth 1 -maxdepth 2 -name nvpartitionmap.txt -printf '%h\n' 2>/dev/null | sort)
+    [ "${#list[@]}" -gt 0 ] || { echo "no backups under $BACKUPS (run 'backup' first)" >&2; return 1; }
+    if [ "${#list[@]}" -eq 1 ]; then echo "${list[0]}"; return 0; fi
+    echo "Multiple backups under $BACKUPS:" >&2
+    local i
+    for i in "${!list[@]}"; do printf '  [%2d] %s\n' "$((i+1))" "$(basename "${list[$i]}")" >&2; done
+    local c
+    read -r -p "Choose a backup to restore [1-${#list[@]}]: " c
+    [[ "$c" =~ ^[0-9]+$ ]] && [ "$c" -ge 1 ] && [ "$c" -le "${#list[@]}" ] || { echo "invalid choice: $c" >&2; return 1; }
+    echo "${list[$((c-1))]}"
+}
+
 cmd_backup() {
-    local dir="${1:-$BACKUP_DIR}"
-    [ -d "$LFT" ] || die "no BSP — run 'init' first"
+    local arg="${1:-}"
+    ensure_bsp
     [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling in BSP"
-    [ -d "$dir" ] && [ -n "$(ls -A "$dir" 2>/dev/null)" ] && warn "backup dir not empty — existing images may be overwritten: $dir"
+    local ts stage final
+    ts="$(date +%Y%m%d-%H%M%S)"
+    if [ -n "$arg" ]; then                          # explicit name or path -> use as-is
+        case "$arg" in /*) stage="$arg";; *) stage="$BACKUPS/$arg";; esac
+        final="$stage"
+        [ -d "$stage" ] && [ -n "$(ls -A "$stage" 2>/dev/null)" ] && warn "target not empty — images may be overwritten: $stage"
+    else                                            # auto: timestamp now, tag jp+l4t on success
+        stage="$BACKUPS/$ts"
+        final="$BACKUPS/${ts}_jp${JP_VER}_l4t${L4T_VER}"
+    fi
     recovery_note
-    confirm "Back up the board (RCM) into $dir ?"
+    confirm "Back up the board (RCM) -> $final ?"
     rootfs_unmount
-    mkdir -p "$dir"
+    mkdir -p "$stage"
     ( cd "$LFT" && $SUDO ./tools/backup_restore/l4t_backup_restore.sh \
         --network usb0 -e nvme0n1 -b "$BOARD_CONF" )
-    log "moving images -> $dir"
-    $SUDO mv "$BR/images/"* "$dir/" 2>/dev/null || true
-    ok "backup saved to $dir"
+    log "collecting images -> $stage"
+    $SUDO mv "$BR/images/"* "$stage/" 2>/dev/null || true
+    [ "$stage" = "$final" ] || mv "$stage" "$final"
+    ok "backup saved to $final"
 }
+
 cmd_restore() {
-    local dir="${1:-$BACKUP_DIR}"
-    [ -d "$dir" ] || die "backup dir not found: $dir (run 'backup' first, or pass a dir)"
+    local arg="${1:-}" dir
+    ensure_bsp
+    [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling in BSP"
+    if [ -n "$arg" ]; then                          # name under backups/ or a full path
+        if   [ -d "$arg" ];           then dir="$arg"
+        elif [ -d "$BACKUPS/$arg" ];  then dir="$BACKUPS/$arg"
+        else die "backup '$arg' not found (looked at the path and under $BACKUPS/)"; fi
+    else
+        dir="$(pick_backup)" || die "no backup selected"
+    fi
     [ -f "$dir/nvpartitionmap.txt" ] || die "not a backup folder (no nvpartitionmap.txt): $dir"
-    [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling — run 'init' first"
     recovery_note
-    confirm "DESTRUCTIVE: restore '$dir' onto the board (erases QSPI + NVMe)?"
+    confirm "DESTRUCTIVE: restore '$(basename "$dir")' onto the board (erases QSPI + NVMe)?"
     rootfs_unmount
     # The initrd reads the images over NFS from the BSP's images/ dir, so they must
     # be REAL files there — symlinks to another filesystem won't resolve in the
@@ -278,10 +335,10 @@ cmd_restore() {
 # ================================================================= flash =========
 cmd_flash() {
     local what="${1:-all}"
-    [ -d "$LFT" ] || die "no BSP — run 'init' first"
     case "$what" in all|qspi) ;; *) die "flash takes 'all' or 'qspi'";; esac
+    ensure_bsp
     recovery_note
-    confirm "DESTRUCTIVE: flash '$what' to the board from $LFT ?"
+    confirm "DESTRUCTIVE: flash JetPack $JP '$what' to the board from $LFT ?"
     rootfs_unmount
     if [ "$what" = all ]; then
         log "full flash (QSPI + NVMe rootfs) via initrd"
@@ -334,7 +391,7 @@ cmd_status() {
     elif grep -qi 'APX' <<<"$dev"; then
         printf '  %-9s %b● APX — bootROM recovery (ready)%b\n' "state" "$G" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
-        printf '  %-9s run  %b./g1_custom_jetpack.sh  flash | backup | restore%b\n' "next" "$B" "$R"
+        printf '  %-9s run  %b./g1_custom_jetpack.sh -j <ver> flash | backup | restore%b\n' "next" "$B" "$R"
     else
         printf '  %-9s %b● NVIDIA recovery device%b (unrecognized PID)\n' "state" "$Y" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
@@ -355,9 +412,10 @@ cmd_clean() {
         else log "no BSP tree to remove"; fi
     fi
     if [ "$what" = backup ] || [ "$what" = all ]; then
-        if [ -d "$BACKUP_DIR" ] && [ -n "$(ls -A "$BACKUP_DIR" 2>/dev/null)" ]; then
-            log "removing backups: $BACKUP_DIR"
-            $SUDO rm -rf "$BACKUP_DIR"
+        if [ -d "$BACKUPS" ] && [ -n "$(ls -A "$BACKUPS" 2>/dev/null)" ]; then
+            confirm "Delete ALL backups under $BACKUPS (every version)?"
+            log "removing all backups: $BACKUPS"
+            $SUDO rm -rf "$BACKUPS"
         else log "no backups to remove"; fi
     fi
     ok "clean ($what) done for JetPack $JP"
