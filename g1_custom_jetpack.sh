@@ -6,20 +6,21 @@
 #   ./g1_custom_jetpack.sh [-j <ver>] <command> [args]
 #
 # JetPack version:
-#   -j, --jetpack <ver>   which JetPack to act on. Each lives under versions/<ver>/.
-#                         Defaults come from ./.env (DEFAULT_JP for init/flash/clean,
-#                         BACKUP_JP for backup/restore).  (env: G1_JP=<ver> also works.)
-#                         e.g.  -j 5.1.6   |   -j 6.2.2
+#   -j, --jetpack <ver>   the JetPack to act on; each lives under versions/<ver>/.
+#                         REQUIRED for init/flash. Optional for clean (scopes to one
+#                         version, else all). Ignored by backup/restore/status — those
+#                         are device ops; backup/restore auto-pick a built BSP's initrd.
+#                         e.g.  -j 5.1.6   |   -j 6.2.2   (env: G1_JP=<ver>)
 #
 # Commands:
 #   init                 download + extract + patch a flash-ready BSP into bsp/<ver>
-#   flash [all|qspi]     flash the chosen JetPack (auto-runs init if needed)
+#   flash [all|qspi]     flash the chosen JetPack (auto-runs init; rebuilds if stale)
 #   backup  [name|dir]   back up every partition over the initrd, into a timestamped,
 #                        version-tagged folder under backups/ (auto-runs init)
 #   restore [name|dir]   restore a backup over the initrd (auto-runs init). With no
 #                        arg, picks from backups/ (menu if more than one).
 #   status               show recovery state (APX / RNDIS) — version-independent
-#   clean [all|bsp|backup]   remove this version's BSP and/or ALL backups (keeps downloads)
+#   clean [all|bsp|backup]   remove a version's BSP (-j) or all BSPs, and/or ALL backups
 #
 # Options:
 #   --yes           skip the confirmation prompt on destructive operations
@@ -32,7 +33,6 @@
 #
 # Layout:
 #   g1_custom_jetpack.sh                   this script (version-aware)
-#   .env                                   DEFAULT_JP / BACKUP_JP
 #   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
 #   versions/<ver>/patches/*.sh            every BSP + rootfs change (named, in order)
 #   versions/<ver>/{dtb,firmware,modules,overlay}   per-version payload
@@ -54,14 +54,9 @@ usage() {
     exit "${1:-0}"
 }
 
-# --- repo config (.env) ----------------------------------------------------------
-DEFAULT_JP="6.2.2"      # JetPack when -j is omitted (init/flash/clean)
-BACKUP_JP="6.2.2"       # JetPack BSP used by backup/restore
-# shellcheck source=/dev/null
-[ -f "$HERE/.env" ] && . "$HERE/.env"
-
 # --- arg parsing -----------------------------------------------------------------
-JP="${G1_JP:-}"                       # -j/--jetpack overrides; else env G1_JP; else .env default
+VERSIONS="$HERE/versions"
+JP="${G1_JP:-}"                       # from -j/--jetpack or env G1_JP — no silent default
 YES=false; POS=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -81,30 +76,56 @@ SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO="sudo"
 BACKUPS="$HERE/backups"               # all dumps live here (timestamped + version-tagged)
 INIT_MARKER=".g1-init-done"           # written at end of cmd_init; ensure_bsp checks it
 
-# --- resolve + validate the JetPack version (all commands except status) ---------
-if [ "$CMD" != status ]; then
-    case "$CMD" in
-        backup|restore) : "${JP:=$BACKUP_JP}";;   # device-state ops -> the BACKUP_JP BSP
-        *)              : "${JP:=$DEFAULT_JP}";;
-    esac
-    VERSIONS="$HERE/versions"; VDIR="$VERSIONS/$JP"
-    if [ ! -f "$VDIR/version.env" ]; then
-        avail="$( [ -d "$VERSIONS" ] && (cd "$VERSIONS" && ls -d */ 2>/dev/null | tr -d /) | tr '\n' ' ')"
-        die "unknown JetPack '$JP' — no versions/$JP/version.env. Available: ${avail:-<none>}. Use -j <ver>."
-    fi
+list_versions() { (cd "$VERSIONS" 2>/dev/null && ls -d */ 2>/dev/null | tr -d /) | sort -V | tr '\n' ' '; }
+
+# Load a version: validate, source its version.env, set per-version build paths.
+load_version() {
+    JP="$1"; VDIR="$VERSIONS/$JP"
+    [ -f "$VDIR/version.env" ] || die "unknown JetPack '$JP' — available: $(list_versions). Use -j <ver>."
     # shellcheck source=/dev/null
     source "$VDIR/version.env"
-
     DOWNLOADS="$HERE/downloads/$JP"
     BSP_PARENT="$HERE/bsp/$JP"
     LFT="$BSP_PARENT/Linux_for_Tegra"
     BR="$LFT/tools/backup_restore"
+}
 
-    case "$CMD" in
-        backup|restore) log "JetPack $JP BSP for backup/restore — L4T ${L4T_VER}, kernel ${KVER}";;
-        *)              log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]";;
-    esac
-fi
+# backup/restore are version-agnostic device ops; they only borrow a recovery initrd.
+# Pick a version to borrow it from: any already-built BSP (highest version), else the
+# highest version dir (ensure_bsp will then build it).
+recovery_jp() {
+    local built="" v
+    for v in $(list_versions); do
+        [ -f "$HERE/bsp/$v/Linux_for_Tegra/$INIT_MARKER" ] && built="$built $v"
+    done
+    if [ -n "$built" ]; then printf '%s\n' $built        | sort -V | tail -1
+    else                     printf '%s\n' $(list_versions) | sort -V | tail -1; fi
+}
+
+# --- resolve the JetPack version for this command --------------------------------
+case "$CMD" in
+    init|flash)
+        [ -n "$JP" ] || die "'$CMD' needs a JetPack version: -j <ver>   (available: $(list_versions))"
+        load_version "$JP"
+        log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]"
+        ;;
+    backup|restore)
+        [ -n "$JP" ] || JP="$(recovery_jp)"
+        [ -n "$JP" ] || die "no versions/ found"
+        load_version "$JP"
+        log "backup/restore via the JetPack $JP recovery initrd (L4T ${L4T_VER})"
+        ;;
+    clean)
+        if [ -n "$JP" ]; then
+            [ -d "$VERSIONS/$JP" ] || die "unknown JetPack '$JP' — available: $(list_versions)"
+            BSP_PARENT="$HERE/bsp/$JP"; LFT="$BSP_PARENT/Linux_for_Tegra"
+        else
+            BSP_PARENT="$HERE/bsp"        # no -j -> all built BSPs
+        fi
+        ;;
+    status) : ;;
+    *)      die "unknown command: $CMD (try --help)" ;;
+esac
 
 need() { command -v "$1" >/dev/null || die "missing tool: $1"; }
 confirm() {
@@ -117,6 +138,7 @@ confirm() {
 # 'Making system.img' tars the live host /proc — incl. /proc/kcore — and overflows
 # the image. (Learned the hard way.)
 rootfs_unmount() {
+    [ -n "${LFT:-}" ] || return 0
     local rfs; rfs="$(readlink -f "$LFT/rootfs" 2>/dev/null || echo "$LFT/rootfs")"
     [ -d "$rfs" ] || return 0
     local m
@@ -188,13 +210,20 @@ apply_patches() {
 }
 
 # Build the BSP for $JP if it isn't ready — lets flash/backup/restore self-init.
+# With "fresh" (flash only): if any versions/<ver> file is newer than the build
+# marker, rebuild so an edited patch/asset can't be silently flashed from a stale BSP.
 ensure_bsp() {
-    if [ -f "$LFT/$INIT_MARKER" ]; then
-        log "using existing BSP: $LFT"
-    else
+    if [ ! -f "$LFT/$INIT_MARKER" ]; then
         log "no built BSP for JetPack $JP — running init first"
-        cmd_init
+        cmd_init; return
     fi
+    if [ "${1:-}" = fresh ] && [ -n "$(find "$VDIR" -newer "$LFT/$INIT_MARKER" -print -quit 2>/dev/null)" ]; then
+        warn "versions/$JP changed since this BSP was built — rebuilding to pick up the changes"
+        rootfs_unmount
+        $SUDO rm -rf "$BSP_PARENT"
+        cmd_init; return
+    fi
+    log "using existing BSP: $LFT"
 }
 
 # ============================================================ backup/restore =====
@@ -272,7 +301,7 @@ cmd_restore() {
 cmd_flash() {
     local what="${1:-all}"
     case "$what" in all|qspi) ;; *) die "flash takes 'all' or 'qspi'";; esac
-    ensure_bsp
+    ensure_bsp fresh
     recovery_note
     confirm "DESTRUCTIVE: flash JetPack $JP '$what' to the board from $LFT ?"
     rootfs_unmount
@@ -354,8 +383,9 @@ cmd_clean() {
             $SUDO rm -rf "$BACKUPS"
         else log "no backups to remove"; fi
     fi
-    ok "clean ($what) done for JetPack $JP"
-    [ "$what" = all ] && echo "    (downloads/$JP cache kept — remove it by hand to force a re-download)"
+    local scope; [ -n "$JP" ] && scope="JetPack $JP" || scope="all versions"
+    ok "clean ($what) done for $scope"
+    [ "$what" = all ] && echo "    (downloads/${JP:-*} cache kept — remove it by hand to force a re-download)"
 }
 
 # --- dispatch --------------------------------------------------------------------

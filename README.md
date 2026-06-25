@@ -38,7 +38,7 @@ What each image sets up:
 ## Quick start
 
 ```bash
-# choose the JetPack with -j (default is 6.2.2). Example: 5.1.6
+# choose the JetPack with -j (required for flash). Example: 5.1.6
 JP=5.1.6
 
 # board in RECOVERY (RCM) with the USB-C flashing cable connected:
@@ -86,23 +86,33 @@ holding REC → release **REC** after ~2 s.
 
 ## Commands
 
-The JetPack is chosen by `-j <ver>`. Defaults live in [`.env`](.env): **`DEFAULT_JP`**
-(used by `init`/`flash`/`clean`) and **`BACKUP_JP`** (used by `backup`/`restore`).
+**`init` and `flash` require `-j <ver>`** (no silent default — you can't flash the wrong
+JetPack by accident). `backup`/`restore`/`status` are device operations and **take no
+version**. `clean` takes `-j` optionally.
 
 ```
--j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6)
+-j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6) — required for init/flash
 init                    download + extract + patch a flash-ready BSP (into bsp/<ver>)
-flash [all|qspi]        flash the chosen JetPack; auto-runs init if needed
+flash [all|qspi]        flash the chosen JetPack; auto-runs init, rebuilds if assets changed
                           all = QSPI + NVMe rootfs (default); qspi = bootloader only
 backup  [name|dir]      dump every partition over the initrd; auto-runs init
 restore [name|dir]      restore a dump over the initrd; auto-runs init
 status                  show recovery state (APX bootROM / RNDIS initrd) — version-independent
-clean [all|bsp|backup]  remove this version's BSP and/or ALL backups (keeps downloads)
-
-options:  --yes   skip the confirmation prompt on destructive operations
+clean [all|bsp|backup]  with -j: that version's BSP; without: all BSPs. backup = ALL dumps
+                          (kept: downloads/)
 ```
 
-Most operations need `sudo`; the script elevates the privileged steps itself.
+```bash
+./g1_custom_jetpack.sh -j 5.1.6 flash all     # flash 5.1.6 (builds the BSP first if needed)
+./g1_custom_jetpack.sh backup                 # no -j needed
+```
+
+options: `--yes` skips the confirmation prompt on destructive operations. Most operations
+need `sudo`; the script elevates the privileged steps itself.
+
+> **Editing a version?** `flash` auto-rebuilds the BSP when anything under
+> `versions/<ver>/` is newer than the last build, so a changed patch/asset is never
+> flashed from a stale BSP. (`backup`/`restore` reuse any built BSP as-is.)
 
 ### Backups
 
@@ -123,14 +133,14 @@ menu to pick from. You can also pass a backup **name** (under `backups/`) or a *
 ./g1_custom_jetpack.sh restore /mnt/usb/some-dump                 # by path
 ```
 
-`backup`/`restore` use the `BACKUP_JP` BSP's recovery initrd (they operate on whatever
-is on the device, so one BSP serves every version).
+`backup`/`restore` borrow a recovery initrd from **any already-built BSP** (or build the
+newest version if none exists) — they operate on whatever is on the device, so one BSP
+serves every version. No version needs to be specified.
 
 ## Repo layout
 
 ```
 g1_custom_jetpack.sh        the one script (version-aware; -j selects the JetPack)
-.env                        DEFAULT_JP (init/flash/clean) + BACKUP_JP (backup/restore)
 versions/<ver>/
   version.env               version knobs — URLs, board conf, kernel version, user/IP
   patches/*.sh              every BSP + rootfs change, named, sourced in order
@@ -167,7 +177,7 @@ main script. (10–20 patch the BSP; 30+ run against the extracted rootfs.)
 Create `versions/<new>/` with a `version.env` (copy an existing one and adjust the
 URLs / L4T / kernel / board conf), the `patches/*.sh` steps, the carrier-patched
 `dtb/`, the built `modules/` + `firmware/`, and the `overlay/`. It's then selectable
-with `-j <new>` (and can be made a default in `.env`).
+with `-j <new>`.
 
 ## Acknowledgements
 

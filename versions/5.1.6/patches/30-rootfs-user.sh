@@ -4,10 +4,15 @@
 #        $USERNAME / $PASSWORD account, set hostname $HOSTNAME, optional autologin,
 #        and accept the EULA — so first boot lands straight at a usable system.
 # WHY:   without this the image boots into the interactive oem-config wizard.
+# IDEMPOTENT: if the user already exists in the rootfs (re-applied patches), warn and
+#        skip instead of failing — but a genuine creation error still aborts (so we
+#        never ship an image with no user). To truly recreate, build on a clean BSP.
 #
 # Sourced by apply_patches() with version.env vars + $LFT $SUDO and helpers in scope.
 
-if [ -x "$LFT/tools/l4t_create_default_user.sh" ]; then
+if $SUDO grep -q "^$USERNAME:" "$LFT/rootfs/etc/passwd" 2>/dev/null; then
+    warn "user '$USERNAME' already exists in the rootfs — skipping user creation"
+elif [ -x "$LFT/tools/l4t_create_default_user.sh" ]; then
     _uargs=(-u "$USERNAME" -p "$PASSWORD" --accept-license)
     [ -n "${HOSTNAME:-}" ] && _uargs+=(-n "$HOSTNAME")
     case "${AUTOLOGIN:-}" in y|yes|true|1|on) _uargs+=(-a);; esac
