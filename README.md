@@ -92,10 +92,9 @@ Most operations need `sudo`; the script elevates the privileged steps itself.
 g1_custom_jetpack.sh   the one script (version-agnostic; identical on every branch)
 version.env            all version knobs — URLs, board conf, kernel version, user/IP
 dtb/                   carrier-patched kernel DTB        -> kernel/dtb + bootloader
-firmware/              rtl8852bu_fw, rtl8852bu_config    -> /lib/firmware/
-modules/               8852bu.ko, rtk_btusb.ko           -> /lib/modules/<KVER>/updates/
-overlay/               rootfs overlay copied onto /  (etc/modprobe.d, etc/modules-load.d
-                         — WiFi/BT autoload + blacklist)
+firmware/              rtl8852bu_fw{,.bin}, rtl8852bu_config{,.bin} -> /lib/firmware/
+modules/               8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
+overlay/               etc/modprobe.d (8852bu options + blacklist btusb) -> /
 downloads/             cached NVIDIA tarballs            (git-ignored)
 bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
 ```

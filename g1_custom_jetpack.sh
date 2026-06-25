@@ -186,8 +186,14 @@ rootfs_customize() {
     } | $SUDO tee "$nm" >/dev/null
     $SUDO chmod 600 "$nm"; $SUDO chown root:root "$nm"
 
-    # 4c. WiFi + BT: prebuilt modules + firmware + autoload/blacklist overlay.
-    #     Skipped when modules/ has no .ko yet (e.g. a new kernel whose driver must
+    # 4c. WiFi + BT: prebuilt modules + firmware + modprobe overlay. Mirrors the
+    #     Unitree vendor image: 8852bu.ko (WiFi) + rtk_btusb.ko (BT) into updates/,
+    #     the 4 rtl8852bu_* firmware blobs into /lib/firmware, modprobe.d options +
+    #     `blacklist btusb`, and the in-box btusb.ko renamed to btusb_bak so the
+    #     out-of-tree rtk_btusb owns the RTL8852BU BT interface (the in-box
+    #     btusb/btrtl stack can't load the 8852BU patch firmware). Autoload is via
+    #     udev modalias once depmod regenerates modules.alias — no modules-load.d.
+    #     Skipped when modules/ has no .ko yet (e.g. a new kernel whose drivers must
     #     first be compiled on-device, then dropped into modules/ + firmware/).
     if [ -n "$(find "$HERE/modules" -name '*.ko' 2>/dev/null | head -1)" ]; then
         log "installing RTL8852BU WiFi/BT (modules + firmware + overlay)"
@@ -196,6 +202,13 @@ rootfs_customize() {
         $SUDO mkdir -p "$rfs/lib/firmware"
         $SUDO cp -f "$HERE"/firmware/* "$rfs/lib/firmware/"
         $SUDO cp -a "$HERE/overlay/." "$rfs/"
+        # Disable the in-box btusb (blacklisted above, and renamed here) so only
+        # rtk_btusb can claim the BT interface — exactly as the vendor image does.
+        local btko="$rfs/lib/modules/$KVER/kernel/drivers/bluetooth/btusb.ko"
+        if [ -f "$btko" ]; then
+            $SUDO mv -f "$btko" "${btko%.ko}_bak"
+            log "  renamed btusb.ko -> btusb_bak"
+        fi
         log "  depmod $KVER"
         $SUDO depmod -b "$rfs" "$KVER"
     else
