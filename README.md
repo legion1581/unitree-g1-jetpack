@@ -41,13 +41,14 @@ What each image sets up:
 # choose the JetPack with -j (default is 6.2.2). Example: 5.1.6
 JP=5.1.6
 
-# 1. build a flash-ready BSP (download + extract + patch) into bsp/<ver>
-./g1_custom_jetpack.sh -j $JP init
-
-# 2. board in RECOVERY (RCM) with the USB-C flashing cable connected:
+# board in RECOVERY (RCM) with the USB-C flashing cable connected:
 ./g1_custom_jetpack.sh status            # confirm APX (bootROM recovery)
 ./g1_custom_jetpack.sh -j $JP flash all  # full flash (QSPI + NVMe rootfs)
 ```
+
+`flash` (and `backup` / `restore`) **auto-build the BSP** for the chosen version if
+it isn't built yet — no separate `init` step needed. Run `init` on its own only when
+you want to (re)build the BSP without flashing.
 
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
 **`192.168.123.164`** (on `eth0`), WiFi + BT up.
@@ -85,28 +86,54 @@ holding REC → release **REC** after ~2 s.
 
 ## Commands
 
-All commands except `status` act on the JetPack chosen by `-j <ver>` (default 6.2.2).
+The JetPack is chosen by `-j <ver>`. Defaults live in [`.env`](.env): **`DEFAULT_JP`**
+(used by `init`/`flash`/`clean`) and **`BACKUP_JP`** (used by `backup`/`restore`).
 
 ```
--j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6); default 6.2.2
+-j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6)
 init                    download + extract + patch a flash-ready BSP (into bsp/<ver>)
-flash [all|qspi]        all = QSPI + NVMe rootfs (default); qspi = bootloader only
-backup  [dir]           back up every partition over the initrd  (default: backups/<ver>)
-restore [dir]           restore a backup over the initrd         (default: backups/<ver>)
+flash [all|qspi]        flash the chosen JetPack; auto-runs init if needed
+                          all = QSPI + NVMe rootfs (default); qspi = bootloader only
+backup  [name|dir]      dump every partition over the initrd; auto-runs init
+restore [name|dir]      restore a dump over the initrd; auto-runs init
 status                  show recovery state (APX bootROM / RNDIS initrd) — version-independent
-clean [all|bsp|backup]  remove this version's BSP and/or backups (keeps downloads)
+clean [all|bsp|backup]  remove this version's BSP and/or ALL backups (keeps downloads)
 
 options:  --yes   skip the confirmation prompt on destructive operations
 ```
 
 Most operations need `sudo`; the script elevates the privileged steps itself.
 
+### Backups
+
+`backup` writes a timestamped folder under `backups/`, renamed on success to encode
+the JetPack + L4T it was taken with:
+
+```bash
+./g1_custom_jetpack.sh backup                 # -> backups/20260625-141233_jp6.2.2_l4t36.5.0/
+./g1_custom_jetpack.sh backup my-snapshot     # -> backups/my-snapshot/   (explicit name)
+```
+
+`restore` with **no argument** scans `backups/` and, if there's more than one, shows a
+menu to pick from. You can also pass a backup **name** (under `backups/`) or a **full path**:
+
+```bash
+./g1_custom_jetpack.sh restore                                    # pick from a menu
+./g1_custom_jetpack.sh restore 20260625-141233_jp6.2.2_l4t36.5.0  # by name
+./g1_custom_jetpack.sh restore /mnt/usb/some-dump                 # by path
+```
+
+`backup`/`restore` use the `BACKUP_JP` BSP's recovery initrd (they operate on whatever
+is on the device, so one BSP serves every version).
+
 ## Repo layout
 
 ```
 g1_custom_jetpack.sh        the one script (version-aware; -j selects the JetPack)
+.env                        DEFAULT_JP (init/flash/clean) + BACKUP_JP (backup/restore)
 versions/<ver>/
   version.env               version knobs — URLs, board conf, kernel version, user/IP
+  patches/*.sh              named BSP patch steps, sourced in order by patch_bsp
   dtb/                      carrier-patched kernel DTB        -> kernel/dtb + bootloader
   firmware/                 rtl8852bu_fw{,.bin}, _config{,.bin} -> /lib/firmware/
   modules/                  8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
@@ -114,14 +141,28 @@ versions/<ver>/
 misc/                       RTL8852BU WiFi/BT driver sources (DKMS debs + src) — shared
 downloads/<ver>/            cached NVIDIA tarballs            (git-ignored)
 bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
-backups/<ver>/              default backup/restore location   (git-ignored)
+backups/<ts>_jp<ver>_l4t<ver>/   partition dumps (timestamped + tagged)  (git-ignored)
 ```
+
+### BSP patches
+
+Each version's BSP edits are individual files in `versions/<ver>/patches/`, applied in
+filename order. They're sourced with `$LFT` (the BSP), `$VDIR` (the version dir), `$DTBS`
+and helpers in scope. Current steps:
+
+```
+10-install-carrier-dtb.sh   drop the carrier-patched kernel DTB(s) over the stock ones
+20-mb2-eeprom-fix.sh        MB2: cvb_eeprom_read_size -> 0x0 (carrier has no EEPROM)
+```
+
+Add a new patch by dropping a `NN-name.sh` in that folder — no edits to the main script.
 
 ### Adding a JetPack version
 
 Create `versions/<new>/` with a `version.env` (copy an existing one and adjust the
-URLs / L4T / kernel / board conf), drop in the carrier-patched `dtb/`, the built
-`modules/` + `firmware/`, and the `overlay/`. It's then selectable with `-j <new>`.
+URLs / L4T / kernel / board conf), the `patches/*.sh` steps, the carrier-patched
+`dtb/`, the built `modules/` + `firmware/`, and the `overlay/`. It's then selectable
+with `-j <new>` (and can be made a default in `.env`).
 
 ## Acknowledgements
 
