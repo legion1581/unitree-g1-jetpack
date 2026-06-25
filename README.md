@@ -5,13 +5,12 @@ the **Unitree G1 custom carrier** (Jetson Orin NX) — multiple JetPack versions
 
 ## Supported JetPacks
 
-Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). Each lives under
-`versions/<ver>/`; `backup` / `restore` / `status` don't need a version.
+[![JetPack 6.2.2](https://img.shields.io/badge/JetPack%206.2.2-L4T%2036.5.0%20%C2%B7%20kernel%205.15.185-2ea44f?style=for-the-badge)](versions/6.2.2/)
+[![JetPack 5.1.6](https://img.shields.io/badge/JetPack%205.1.6-L4T%2035.6.4%20%C2%B7%20kernel%205.10.216-2ea44f?style=for-the-badge)](versions/5.1.6/)
 
-| JetPack | L4T | Kernel | Select with | Status |
-|:--|:--|:--|:--|:--|
-| **6.2.2** | 36.5.0 | 5.15.185-tegra | `-j 6.2.2` | ✅ tested — WiFi · BT · static IP |
-| **5.1.6** | 35.6.4 | 5.10.216-tegra | `-j 5.1.6` | ✅ tested — WiFi · BT · static IP |
+Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). Both ✅ tested
+(WiFi · BT · static IP); `backup` / `restore` / `status` don't need a version. Each badge
+links to its `versions/<ver>/`.
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
