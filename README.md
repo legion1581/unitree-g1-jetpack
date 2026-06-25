@@ -168,6 +168,9 @@ and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the
 Add or change a step by editing/dropping a `NN-name.sh` in that folder — no edits to the
 main script. (10–20 patch the BSP; 30+ run against the extracted rootfs.)
 
+Each version also has its own README with that version's patch table and notes:
+[versions/6.2.2](versions/6.2.2/README.md) · [versions/5.1.6](versions/5.1.6/README.md).
+
 ### Adding a JetPack version
 
 Create `versions/<new>/` with a `version.env` (copy an existing one and adjust the
