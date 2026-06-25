@@ -3,30 +3,35 @@
 # g1_custom_jetpack.sh — build, back up, restore and flash a JetPack image for the
 # Unitree G1 custom carrier board (Jetson Orin NX, p3767 on a p3768-class carrier).
 #
-#   ./g1_custom_jetpack.sh <command> [options]
+#   ./g1_custom_jetpack.sh [-j <ver>] <command> [options]
+#
+# JetPack version:
+#   -j, --jetpack <ver>   which JetPack to act on (default: 6.2.2). Each version
+#                         lives under versions/<ver>/  (env: G1_JP=<ver> also works).
+#                         e.g.  -j 5.1.6   |   -j 6.2.2
 #
 # Commands:
-#   init                 download + extract + patch a flash-ready BSP into ./bsp
+#   init                 download + extract + patch a flash-ready BSP into bsp/<ver>
 #   flash [all|qspi]     flash via the recovery initrd (default: all = QSPI+NVMe)
-#   backup  [dir]        back up every partition over the initrd (default: ./backups)
-#   restore [dir]        restore a backup over the initrd        (default: ./backups)
-#   status               show recovery state (APX / RNDIS)
-#   clean [all|bsp|backup]   remove the extracted BSP and/or backups (keeps downloads)
+#   backup  [dir]        back up every partition over the initrd (default: backups/<ver>)
+#   restore [dir]        restore a backup over the initrd        (default: backups/<ver>)
+#   status               show recovery state (APX / RNDIS) — version-independent
+#   clean [all|bsp|backup]   remove this version's BSP and/or backups (keeps downloads)
 #
 # Options:
 #   --yes           skip the confirmation prompt on destructive operations
 #   -h, --help
 #
-# This repo is single-version: the JetPack version is whatever this branch ships
-# (see version.env). Each JetPack lives on its own branch (6.2.2, 5.1.6, 7.2 ...).
-# Patched **DTBs are distributed** (dtb/), not generated — no device-tree compiler
-# or kernel-DTS surgery here.
+# Patched **DTBs are distributed** (versions/<ver>/dtb/), not generated — no
+# device-tree compiler or kernel-DTS surgery here.
 #
-# Layout (all under this repo root):
-#   version.env                    URLs, board conf, kernel ver, user/IP
-#   dtb/ firmware/ modules/ overlay/   the patch set applied to the BSP/rootfs
-#   downloads/                     cached NVIDIA .tbz2 tarballs   (git-ignored)
-#   bsp/Linux_for_Tegra            extracted + patched BSP        (git-ignored)
+# Layout:
+#   g1_custom_jetpack.sh                   this script (version-aware)
+#   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
+#   versions/<ver>/{dtb,firmware,modules,overlay}   per-version patch set
+#   misc/                                  WiFi/BT driver sources (shared)
+#   downloads/<ver>/                       cached NVIDIA .tbz2 tarballs  (git-ignored)
+#   bsp/<ver>/Linux_for_Tegra              extracted + patched BSP       (git-ignored)
 #
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -38,35 +43,48 @@ die()  { printf '\033[31m[x]\033[0m %s\n' "$*" >&2; exit 1; }
 c_grn(){ printf '\033[32m%s\033[0m' "$*"; }
 
 usage() {
-    sed -n '3,29p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '3,/^set -euo pipefail/p' "$0" | sed -e '/^set -euo pipefail/d' -e 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
 # --- arg parsing -----------------------------------------------------------------
-[ $# -ge 1 ] || usage 1
-CMD="$1"; shift
+DEFAULT_JP="6.2.2"
+JP="${G1_JP:-}"                       # -j/--jetpack overrides; else env G1_JP; else default
 YES=false; POS=()
 while [ $# -gt 0 ]; do
     case "$1" in
-        --yes)     YES=true; shift;;
-        -h|--help) usage 0;;
-        *)         POS+=("$1"); shift;;
+        -j|--jetpack)   [ $# -ge 2 ] || die "-j/--jetpack needs a version"; JP="$2"; shift 2;;
+        --jetpack=*|-j=*) JP="${1#*=}"; shift;;
+        --yes)          YES=true; shift;;
+        -h|--help|help) usage 0;;
+        *)              POS+=("$1"); shift;;
     esac
 done
 set -- "${POS[@]:-}"
+[ $# -ge 1 ] || usage 1
+CMD="$1"; shift
+[ "$CMD" = help ] && usage 0
 
-case "$CMD" in -h|--help|help) usage 0;; esac
-
-[ -f "$HERE/version.env" ] || die "missing version.env (are you on a version branch?)"
+# --- pick + validate the JetPack version -----------------------------------------
+: "${JP:=$DEFAULT_JP}"
+VERSIONS="$HERE/versions"
+VDIR="$VERSIONS/$JP"
+if [ ! -f "$VDIR/version.env" ]; then
+    avail="$( [ -d "$VERSIONS" ] && (cd "$VERSIONS" && ls -d */ 2>/dev/null | tr -d /) | tr '\n' ' ')"
+    die "unknown JetPack '$JP' — no versions/$JP/version.env. Available: ${avail:-<none>}. Use -j <ver>."
+fi
 # shellcheck source=/dev/null
-source "$HERE/version.env"
+source "$VDIR/version.env"
 
-DOWNLOADS="$HERE/downloads"
-BSP_PARENT="$HERE/bsp"
+# per-version build locations (all git-ignored)
+DOWNLOADS="$HERE/downloads/$JP"
+BSP_PARENT="$HERE/bsp/$JP"
 LFT="$BSP_PARENT/Linux_for_Tegra"
-BACKUP_DIR="$HERE/backups"          # default backup/restore location (git-ignored)
+BACKUP_DIR="$HERE/backups/$JP"        # default backup/restore location (git-ignored)
 
 SUDO=""; [ "$(id -u)" -eq 0 ] || SUDO="sudo"
+
+log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]"
 
 need() { command -v "$1" >/dev/null || die "missing tool: $1"; }
 confirm() {
@@ -130,7 +148,7 @@ cmd_init() {
     rootfs_customize
 
     ok "BSP ready: $LFT"
-    echo "    next:  ./g1_custom_jetpack.sh flash all   (board in RCM)"
+    echo "    next:  ./g1_custom_jetpack.sh -j $JP flash all   (board in RCM)"
 }
 
 patch_bsp() {
@@ -139,9 +157,9 @@ patch_bsp() {
     #     bootloader copy flash.sh signs from).
     local d
     for d in $DTBS; do
-        [ -f "$HERE/dtb/$d" ] || die "missing shipped DTB: dtb/$d"
-        $SUDO cp -f "$HERE/dtb/$d" "$LFT/kernel/dtb/$d"
-        [ -f "$LFT/bootloader/$d" ] && $SUDO cp -f "$HERE/dtb/$d" "$LFT/bootloader/$d"
+        [ -f "$VDIR/dtb/$d" ] || die "missing shipped DTB: versions/$JP/dtb/$d"
+        $SUDO cp -f "$VDIR/dtb/$d" "$LFT/kernel/dtb/$d"
+        [ -f "$LFT/bootloader/$d" ] && $SUDO cp -f "$VDIR/dtb/$d" "$LFT/bootloader/$d"
         log "  DTB <- $d"
     done
     # 3b. MB2 EEPROM boot fix: tell MB2 to read 0 bytes of carrier EEPROM (the
@@ -195,24 +213,27 @@ rootfs_customize() {
     #     udev modalias once depmod regenerates modules.alias — no modules-load.d.
     #     Skipped when modules/ has no .ko yet (e.g. a new kernel whose drivers must
     #     first be compiled on-device, then dropped into modules/ + firmware/).
-    if [ -n "$(find "$HERE/modules" -name '*.ko' 2>/dev/null | head -1)" ]; then
+    if [ -n "$(find "$VDIR/modules" -name '*.ko' 2>/dev/null | head -1)" ]; then
         log "installing RTL8852BU WiFi/BT (modules + firmware + overlay)"
         $SUDO mkdir -p "$rfs/lib/modules/$KVER/updates"
-        $SUDO cp -a "$HERE/modules/." "$rfs/lib/modules/$KVER/updates/"
+        $SUDO cp -a "$VDIR/modules/." "$rfs/lib/modules/$KVER/updates/"
         $SUDO mkdir -p "$rfs/lib/firmware"
-        $SUDO cp -f "$HERE"/firmware/* "$rfs/lib/firmware/"
-        $SUDO cp -a "$HERE/overlay/." "$rfs/"
-        # Disable the in-box btusb (blacklisted above, and renamed here) so only
-        # rtk_btusb can claim the BT interface — exactly as the vendor image does.
-        local btko="$rfs/lib/modules/$KVER/kernel/drivers/bluetooth/btusb.ko"
-        if [ -f "$btko" ]; then
-            $SUDO mv -f "$btko" "${btko%.ko}_bak"
-            log "  renamed btusb.ko -> btusb_bak"
+        $SUDO cp -f "$VDIR"/firmware/* "$rfs/lib/firmware/"
+        $SUDO cp -a "$VDIR/overlay/." "$rfs/"
+        # If this version ships the out-of-tree rtk_btusb, disable the in-box btusb
+        # (also blacklisted via the overlay) by renaming it, so only rtk_btusb can
+        # claim the BT interface — exactly as the Unitree vendor image does.
+        if find "$VDIR/modules" -name 'rtk_btusb.ko' 2>/dev/null | grep -q .; then
+            local btko="$rfs/lib/modules/$KVER/kernel/drivers/bluetooth/btusb.ko"
+            if [ -f "$btko" ]; then
+                $SUDO mv -f "$btko" "${btko%.ko}_bak"
+                log "  renamed btusb.ko -> btusb_bak"
+            fi
         fi
         log "  depmod $KVER"
         $SUDO depmod -b "$rfs" "$KVER"
     else
-        warn "no .ko in modules/ — skipping WiFi/BT (compile on-device, then add to modules/+firmware/)"
+        warn "no .ko in versions/$JP/modules — skipping WiFi/BT (compile on-device, then add them)"
     fi
 }
 
@@ -339,8 +360,8 @@ cmd_clean() {
             $SUDO rm -rf "$BACKUP_DIR"
         else log "no backups to remove"; fi
     fi
-    ok "clean ($what) done"
-    [ "$what" = all ] && echo "    (downloads/ cache kept — remove it by hand to force a re-download)"
+    ok "clean ($what) done for JetPack $JP"
+    [ "$what" = all ] && echo "    (downloads/$JP cache kept — remove it by hand to force a re-download)"
 }
 
 # --- dispatch --------------------------------------------------------------------
