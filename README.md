@@ -1,9 +1,8 @@
-# Unitree G1 Jetpack 5.1.6
+# Unitree G1 Custom JetPack
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image
-for the **Unitree G1 custom carrier** (Jetson Orin NX).
-
-**JetPack 5.1.6** · L4T 35.6.4 · kernel 5.10.216-tegra
+for the **Unitree G1 custom carrier** (Jetson Orin NX) — for **multiple JetPack versions**
+from a single branch.
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
@@ -13,7 +12,16 @@ fixes plus a few rootfs tweaks, so a single `init` → `flash` gives you a worki
 > Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
 
-What it sets up:
+## Supported JetPacks
+
+Pick one with `-j <ver>` (default **6.2.2**). Each lives under `versions/<ver>/`.
+
+| JetPack | L4T | Kernel | Select with | Status |
+|:--|:--|:--|:--|:--|
+| **6.2.2** | 36.5.0 | 5.15.185-tegra | `-j 6.2.2` *(default)* | ✅ tested — WiFi · BT · static IP |
+| **5.1.6** | 35.6.4 | 5.10.216-tegra | `-j 5.1.6` | ✅ tested — WiFi · BT · static IP |
+
+What each image sets up:
 
 - **Carrier-patched device tree** — corrected USB3 wiring so recovery RNDIS + USB host ports work.
 - **MB2 boot fix** — lets the module boot on a carrier that has no EEPROM.
@@ -30,18 +38,22 @@ What it sets up:
 ## Quick start
 
 ```bash
-git checkout 5.1.6
+# choose the JetPack with -j (default is 6.2.2). Example: 5.1.6
+JP=5.1.6
 
-# 1. build a flash-ready BSP (download + extract + patch) into ./bsp
-./g1_custom_jetpack.sh init
+# 1. build a flash-ready BSP (download + extract + patch) into bsp/<ver>
+./g1_custom_jetpack.sh -j $JP init
 
 # 2. board in RECOVERY (RCM) with the USB-C flashing cable connected:
-./g1_custom_jetpack.sh status      # confirm APX (bootROM recovery)
-./g1_custom_jetpack.sh flash all   # full flash (QSPI + NVMe rootfs)
+./g1_custom_jetpack.sh status            # confirm APX (bootROM recovery)
+./g1_custom_jetpack.sh -j $JP flash all  # full flash (QSPI + NVMe rootfs)
 ```
 
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
-**`192.168.123.164`**, WiFi + BT up.
+**`192.168.123.164`** (on `eth0`), WiFi + BT up.
+
+> `-j` can also be given as the `G1_JP` environment variable
+> (e.g. `G1_JP=5.1.6 ./g1_custom_jetpack.sh init`).
 
 ## Recovery mode (RCM)
 
@@ -73,13 +85,16 @@ holding REC → release **REC** after ~2 s.
 
 ## Commands
 
+All commands except `status` act on the JetPack chosen by `-j <ver>` (default 6.2.2).
+
 ```
-init                    download + extract + patch a flash-ready BSP (into ./bsp)
+-j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6); default 6.2.2
+init                    download + extract + patch a flash-ready BSP (into bsp/<ver>)
 flash [all|qspi]        all = QSPI + NVMe rootfs (default); qspi = bootloader only
-backup  [dir]           back up every partition over the initrd  (default: ./backups)
-restore [dir]           restore a backup over the initrd         (default: ./backups)
-status                  show recovery state (APX bootROM / RNDIS initrd)
-clean [all|bsp|backup]  remove the BSP and/or backups (keeps downloads)
+backup  [dir]           back up every partition over the initrd  (default: backups/<ver>)
+restore [dir]           restore a backup over the initrd         (default: backups/<ver>)
+status                  show recovery state (APX bootROM / RNDIS initrd) — version-independent
+clean [all|bsp|backup]  remove this version's BSP and/or backups (keeps downloads)
 
 options:  --yes   skip the confirmation prompt on destructive operations
 ```
@@ -89,15 +104,24 @@ Most operations need `sudo`; the script elevates the privileged steps itself.
 ## Repo layout
 
 ```
-g1_custom_jetpack.sh   the one script (version-agnostic; identical on every branch)
-version.env            all version knobs — URLs, board conf, kernel version, user/IP
-dtb/                   carrier-patched kernel DTB        -> kernel/dtb + bootloader
-firmware/              rtl8852bu_fw{,.bin}, rtl8852bu_config{,.bin} -> /lib/firmware/
-modules/               8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
-overlay/               etc/modprobe.d (8852bu options + blacklist btusb) -> /
-downloads/             cached NVIDIA tarballs            (git-ignored)
-bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
+g1_custom_jetpack.sh        the one script (version-aware; -j selects the JetPack)
+versions/<ver>/
+  version.env               version knobs — URLs, board conf, kernel version, user/IP
+  dtb/                      carrier-patched kernel DTB        -> kernel/dtb + bootloader
+  firmware/                 rtl8852bu_fw{,.bin}, _config{,.bin} -> /lib/firmware/
+  modules/                  8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
+  overlay/                  rootfs overlay copied onto /  (modprobe.d: 8852bu opts + blacklist)
+misc/                       RTL8852BU WiFi/BT driver sources (DKMS debs + src) — shared
+downloads/<ver>/            cached NVIDIA tarballs            (git-ignored)
+bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
+backups/<ver>/              default backup/restore location   (git-ignored)
 ```
+
+### Adding a JetPack version
+
+Create `versions/<new>/` with a `version.env` (copy an existing one and adjust the
+URLs / L4T / kernel / board conf), drop in the carrier-patched `dtb/`, the built
+`modules/` + `firmware/`, and the `overlay/`. It's then selectable with `-j <new>`.
 
 ## Acknowledgements
 
