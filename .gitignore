@@ -9,3 +9,6 @@
 *.swp
 *~
 .DS_Store
+
+# scratch: vanilla/patched DTB checks
+/tmp/

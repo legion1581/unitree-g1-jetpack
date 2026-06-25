@@ -1,9 +1,9 @@
-# Unitree G1 Jetpack 6.2.2
+# Unitree G1 Jetpack 5.1.6
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image
 for the **Unitree G1 custom carrier** (Jetson Orin NX).
 
-**JetPack 6.2.2** · L4T 36.5.0 · kernel 5.15.185-tegra
+**JetPack 5.1.6** · L4T 35.6.4 · kernel 5.10.216-tegra
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
@@ -30,7 +30,7 @@ What it sets up:
 ## Quick start
 
 ```bash
-git checkout 6.2.2
+git checkout 5.1.6
 
 # 1. build a flash-ready BSP (download + extract + patch) into ./bsp
 ./g1_custom_jetpack.sh init
@@ -92,10 +92,9 @@ Most operations need `sudo`; the script elevates the privileged steps itself.
 g1_custom_jetpack.sh   the one script (version-agnostic; identical on every branch)
 version.env            all version knobs — URLs, board conf, kernel version, user/IP
 dtb/                   carrier-patched kernel DTB        -> kernel/dtb + bootloader
-firmware/              rtl8852bu_fw, rtl8852bu_config    -> /lib/firmware/
-modules/               8852bu.ko, rtk_btusb.ko           -> /lib/modules/<KVER>/updates/
-overlay/               rootfs overlay copied onto /  (etc/modprobe.d, etc/modules-load.d
-                         — WiFi/BT autoload + blacklist)
+firmware/              rtl8852bu_fw{,.bin}, rtl8852bu_config{,.bin} -> /lib/firmware/
+modules/               8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
+overlay/               etc/modprobe.d (8852bu options + blacklist btusb) -> /
 downloads/             cached NVIDIA tarballs            (git-ignored)
 bsp/Linux_for_Tegra    extracted + patched BSP           (git-ignored)
 ```
