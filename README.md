@@ -1,32 +1,29 @@
-# Unitree G1 Custom JetPack
+# Unitree G1 JetPack
 
-One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image
-for the **Unitree G1 custom carrier** (Jetson Orin NX) — for **multiple JetPack versions**
-from a single branch.
+One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
+the **Unitree G1 custom carrier** (Jetson Orin NX) — multiple JetPack versions from one branch.
+
+## Supported JetPacks
+
+Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). Each lives under
+`versions/<ver>/`; `backup` / `restore` / `status` don't need a version.
+
+| JetPack | L4T | Kernel | Select with | Status |
+|:--|:--|:--|:--|:--|
+| **6.2.2** | 36.5.0 | 5.15.185-tegra | `-j 6.2.2` | ✅ tested — WiFi · BT · static IP |
+| **5.1.6** | 35.6.4 | 5.10.216-tegra | `-j 5.1.6` | ✅ tested — WiFi · BT · static IP |
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
 onboard WiFi/BT needs an out-of-tree driver. This repo wraps NVIDIA's BSP with those carrier
-fixes plus a few rootfs tweaks, so a single `init` → `flash` gives you a working board.
+fixes plus a few rootfs tweaks, so a single `-j <ver> flash` gives you a working board.
 
 > Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
 
-## Supported JetPacks
-
-Pick one with `-j <ver>` (default **6.2.2**). Each lives under `versions/<ver>/`.
-
-| JetPack | L4T | Kernel | Select with | Status |
-|:--|:--|:--|:--|:--|
-| **6.2.2** | 36.5.0 | 5.15.185-tegra | `-j 6.2.2` *(default)* | ✅ tested — WiFi · BT · static IP |
-| **5.1.6** | 35.6.4 | 5.10.216-tegra | `-j 5.1.6` | ✅ tested — WiFi · BT · static IP |
-
-What each image sets up:
-
-- **Carrier-patched device tree** — corrected USB3 wiring so recovery RNDIS + USB host ports work.
-- **MB2 boot fix** — lets the module boot on a carrier that has no EEPROM.
-- **Ready-to-use rootfs** — login user, hostname, autologin, static IP, and the
-  **RTL8852BU WiFi + Bluetooth** driver baked in (modules + firmware).
+Each image applies a few carrier patches to the **device tree** (USB3 wiring, MB2 boot) and
+the **rootfs** (login user, static IP, WiFi/BT). The exact, named set lives in
+`versions/<ver>/patches/` — see [Patches](#patches--every-change-in-one-place).
 
 ## Requirements
 
