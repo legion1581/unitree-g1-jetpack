@@ -133,7 +133,7 @@ g1_custom_jetpack.sh        the one script (version-aware; -j selects the JetPac
 .env                        DEFAULT_JP (init/flash/clean) + BACKUP_JP (backup/restore)
 versions/<ver>/
   version.env               version knobs — URLs, board conf, kernel version, user/IP
-  patches/*.sh              named BSP patch steps, sourced in order by patch_bsp
+  patches/*.sh              every BSP + rootfs change, named, sourced in order
   dtb/                      carrier-patched kernel DTB        -> kernel/dtb + bootloader
   firmware/                 rtl8852bu_fw{,.bin}, _config{,.bin} -> /lib/firmware/
   modules/                  8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
@@ -144,18 +144,23 @@ bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
 backups/<ts>_jp<ver>_l4t<ver>/   partition dumps (timestamped + tagged)  (git-ignored)
 ```
 
-### BSP patches
+### Patches — every change in one place
 
-Each version's BSP edits are individual files in `versions/<ver>/patches/`, applied in
-filename order. They're sourced with `$LFT` (the BSP), `$VDIR` (the version dir), `$DTBS`
-and helpers in scope. Current steps:
+**Every** change made to the image (BSP *and* rootfs) is an individual, named file in
+`versions/<ver>/patches/`, applied in filename order by `apply_patches`. Open that folder
+and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the BSP),
+`$VDIR` (the version dir), `$DTBS`, `$KVER` and the helpers in scope. Current steps:
 
 ```
 10-install-carrier-dtb.sh   drop the carrier-patched kernel DTB(s) over the stock ones
 20-mb2-eeprom-fix.sh        MB2: cvb_eeprom_read_size -> 0x0 (carrier has no EEPROM)
+30-rootfs-user.sh           default user / hostname / autologin, bypass oem-config
+40-rootfs-static-ip.sh      NetworkManager keyfile for the static IP on $NET_IFACE
+50-rootfs-wifi-bt.sh        RTL8852BU WiFi+BT modules + firmware + overlay + btusb_bak
 ```
 
-Add a new patch by dropping a `NN-name.sh` in that folder — no edits to the main script.
+Add or change a step by editing/dropping a `NN-name.sh` in that folder — no edits to the
+main script. (10–20 patch the BSP; 30+ run against the extracted rootfs.)
 
 ### Adding a JetPack version
 

@@ -25,15 +25,16 @@
 #   --yes           skip the confirmation prompt on destructive operations
 #   -h, --help
 #
-# BSP patches are **named files** under versions/<ver>/patches/*.sh (sourced in
-# sorted order by patch_bsp) — so it's obvious what each one changes. Patched DTBs
-# are **distributed** (versions/<ver>/dtb/), not generated.
+# EVERY change made to the image is a **named file** under versions/<ver>/patches/*.sh
+# (BSP and rootfs alike), sourced in sorted order by apply_patches — so opening that
+# folder shows the whole patch set at a glance. Patched DTBs are **distributed**
+# (versions/<ver>/dtb/), not generated.
 #
 # Layout:
 #   g1_custom_jetpack.sh                   this script (version-aware)
 #   .env                                   DEFAULT_JP / BACKUP_JP
 #   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
-#   versions/<ver>/patches/*.sh            BSP patch steps (named, self-documenting)
+#   versions/<ver>/patches/*.sh            every BSP + rootfs change (named, in order)
 #   versions/<ver>/{dtb,firmware,modules,overlay}   per-version payload
 #   misc/                                  WiFi/BT driver sources (shared)
 #   downloads/<ver>/                       cached NVIDIA .tbz2 tarballs  (git-ignored)
@@ -160,23 +161,22 @@ cmd_init() {
     log "running apply_binaries.sh"
     ( cd "$LFT" && $SUDO ./apply_binaries.sh )
 
-    # 3. BSP patches: named *.sh steps under versions/<ver>/patches/
-    patch_bsp
-
-    # 4. rootfs: user, static IP, wifi/bt
-    rootfs_customize
+    # 3. apply every change (BSP + rootfs) as named steps from versions/<ver>/patches/
+    apply_patches
 
     touch "$LFT/$INIT_MARKER" 2>/dev/null || $SUDO touch "$LFT/$INIT_MARKER"
     ok "BSP ready: $LFT"
     echo "    next:  ./g1_custom_jetpack.sh -j $JP flash all   (board in RCM)"
 }
 
-# Generic: run every versions/<ver>/patches/*.sh in sorted order. Each is sourced
-# (so it shares $LFT/$VDIR/$DTBS/$SUDO and log()/die()) and named to say what it does.
-patch_bsp() {
+# Run every versions/<ver>/patches/*.sh in sorted order — the COMPLETE set of BSP +
+# rootfs changes, one named file each, so opening patches/ shows everything done to
+# the image. Sourced, so they share version.env, $LFT, $VDIR, $DTBS, $SUDO, $KVER and
+# log()/warn()/die()/rootfs_unmount(). (Runs after the rootfs is extracted + apply_binaries.)
+apply_patches() {
     local pdir="$VDIR/patches" p applied=0
-    [ -d "$pdir" ] || { warn "no patches/ in versions/$JP — BSP left stock"; return 0; }
-    log "applying BSP patches from versions/$JP/patches/"
+    [ -d "$pdir" ] || { warn "no patches/ in versions/$JP — nothing applied"; return 0; }
+    log "applying patches from versions/$JP/patches/"
     for p in "$pdir"/*.sh; do
         [ -f "$p" ] || continue                 # glob didn't match -> nothing to do
         log "patch: $(basename "$p")"
@@ -185,70 +185,6 @@ patch_bsp() {
         applied=$((applied+1))
     done
     [ "$applied" -gt 0 ] || warn "versions/$JP/patches/ had no *.sh files"
-}
-
-rootfs_customize() {
-    local rfs="$LFT/rootfs"
-    [ -d "$rfs" ] || die "no rootfs at $rfs"
-
-    # 4a. default user + bypass oem-config (NVIDIA's tool; it chroots via qemu)
-    if [ -x "$LFT/tools/l4t_create_default_user.sh" ]; then
-        local uargs=(-u "$USERNAME" -p "$PASSWORD" --accept-license)
-        [ -n "${HOSTNAME:-}" ] && uargs+=(-n "$HOSTNAME")
-        case "${AUTOLOGIN:-}" in y|yes|true|1|on) uargs+=(-a);; esac
-        log "creating user '$USERNAME' (host=${HOSTNAME:-tegra-ubuntu}, autologin=${AUTOLOGIN:-no}, oem-config bypassed)"
-        $SUDO "$LFT/tools/l4t_create_default_user.sh" "${uargs[@]}" || die "user creation failed"
-        rootfs_unmount   # belt-and-suspenders: never leave /proc bind-mounted
-    else
-        warn "l4t_create_default_user.sh missing — skipping user setup"
-    fi
-
-    # 4b. static IP via a NetworkManager keyfile (this image uses NM, not netplan).
-    #     gateway/dns are optional — this NIC is usually a point-to-point LAN, so
-    #     leaving them empty avoids a competing default route (internet via WiFi).
-    log "static IP $STATIC_IP on $NET_IFACE (NetworkManager)"
-    local nm="$rfs/etc/NetworkManager/system-connections/unitree-static.nmconnection"
-    $SUDO mkdir -p "$(dirname "$nm")"
-    {
-        printf '[connection]\nid=unitree-static\ntype=ethernet\ninterface-name=%s\nautoconnect=true\nautoconnect-priority=100\n\n' "$NET_IFACE"
-        printf '[ipv4]\nmethod=manual\naddresses=%s\n' "$STATIC_IP"
-        [ -n "${GATEWAY:-}" ] && printf 'gateway=%s\n' "$GATEWAY"
-        [ -n "${DNS:-}" ]     && printf 'dns=%s\n' "$DNS"
-        printf '\n[ipv6]\nmethod=ignore\n'
-    } | $SUDO tee "$nm" >/dev/null
-    $SUDO chmod 600 "$nm"; $SUDO chown root:root "$nm"
-
-    # 4c. WiFi + BT: prebuilt modules + firmware + modprobe overlay. Mirrors the
-    #     Unitree vendor image: 8852bu.ko (WiFi) + rtk_btusb.ko (BT) into updates/,
-    #     the 4 rtl8852bu_* firmware blobs into /lib/firmware, modprobe.d options +
-    #     `blacklist btusb`, and the in-box btusb.ko renamed to btusb_bak so the
-    #     out-of-tree rtk_btusb owns the RTL8852BU BT interface (the in-box
-    #     btusb/btrtl stack can't load the 8852BU patch firmware). Autoload is via
-    #     udev modalias once depmod regenerates modules.alias — no modules-load.d.
-    #     Skipped when modules/ has no .ko yet (e.g. a new kernel whose drivers must
-    #     first be compiled on-device, then dropped into modules/ + firmware/).
-    if [ -n "$(find "$VDIR/modules" -name '*.ko' 2>/dev/null | head -1)" ]; then
-        log "installing RTL8852BU WiFi/BT (modules + firmware + overlay)"
-        $SUDO mkdir -p "$rfs/lib/modules/$KVER/updates"
-        $SUDO cp -a "$VDIR/modules/." "$rfs/lib/modules/$KVER/updates/"
-        $SUDO mkdir -p "$rfs/lib/firmware"
-        $SUDO cp -f "$VDIR"/firmware/* "$rfs/lib/firmware/"
-        $SUDO cp -a "$VDIR/overlay/." "$rfs/"
-        # If this version ships the out-of-tree rtk_btusb, disable the in-box btusb
-        # (also blacklisted via the overlay) by renaming it, so only rtk_btusb can
-        # claim the BT interface — exactly as the Unitree vendor image does.
-        if find "$VDIR/modules" -name 'rtk_btusb.ko' 2>/dev/null | grep -q .; then
-            local btko="$rfs/lib/modules/$KVER/kernel/drivers/bluetooth/btusb.ko"
-            if [ -f "$btko" ]; then
-                $SUDO mv -f "$btko" "${btko%.ko}_bak"
-                log "  renamed btusb.ko -> btusb_bak"
-            fi
-        fi
-        log "  depmod $KVER"
-        $SUDO depmod -b "$rfs" "$KVER"
-    else
-        warn "no .ko in versions/$JP/modules — skipping WiFi/BT (compile on-device, then add them)"
-    fi
 }
 
 # Build the BSP for $JP if it isn't ready — lets flash/backup/restore self-init.
