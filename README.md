@@ -5,10 +5,11 @@ the **Unitree G1 custom carrier** (Jetson Orin NX) — multiple JetPack versions
 
 ## Supported JetPacks
 
+[![JetPack 7.2](https://img.shields.io/badge/JetPack%207.2-L4T%2039.2.0%20%C2%B7%20kernel%206.8.12-2ea44f?style=for-the-badge)](versions/7.2/)
 [![JetPack 6.2.2](https://img.shields.io/badge/JetPack%206.2.2-L4T%2036.5.0%20%C2%B7%20kernel%205.15.185-2ea44f?style=for-the-badge)](versions/6.2.2/)
 [![JetPack 5.1.6](https://img.shields.io/badge/JetPack%205.1.6-L4T%2035.6.4%20%C2%B7%20kernel%205.10.216-2ea44f?style=for-the-badge)](versions/5.1.6/)
 
-Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). Both ✅ tested
+Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). All three ✅ tested
 (WiFi · BT · static IP); `backup` / `restore` / `status` don't need a version. Each badge
 links to its `versions/<ver>/`.
 
@@ -87,7 +88,7 @@ JetPack by accident). `backup`/`restore`/`status` are device operations and **ta
 version**. `clean` takes `-j` optionally.
 
 ```
--j, --jetpack <ver>     which JetPack to act on (6.2.2 | 5.1.6) — required for init/flash
+-j, --jetpack <ver>     which JetPack to act on (7.2 | 6.2.2 | 5.1.6) — required for init/flash
 init                    download + extract + patch a flash-ready BSP (into bsp/<ver>)
 flash [all|qspi]        flash the chosen JetPack; auto-runs init, rebuilds if assets changed
                           all = QSPI + NVMe rootfs (default); qspi = bootloader only
@@ -169,7 +170,7 @@ Add or change a step by editing/dropping a `NN-name.sh` in that folder — no ed
 main script. (10–20 patch the BSP; 30+ run against the extracted rootfs.)
 
 Each version also has its own README with that version's patch table and notes:
-[versions/6.2.2](versions/6.2.2/README.md) · [versions/5.1.6](versions/5.1.6/README.md).
+[versions/7.2](versions/7.2/README.md) · [versions/6.2.2](versions/6.2.2/README.md) · [versions/5.1.6](versions/5.1.6/README.md).
 
 ### Adding a JetPack version
 
