@@ -54,7 +54,7 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 - **NIC name is `enP8p1s0`** — the 7.2 image uses predictable names (not `net.ifnames=0`),
   so the static IP binds to `enP8p1s0`, not `eth0`.
 - **Rebuilding WiFi for a newer kernel**: the patched source is in
-  `misc/rtl8852bu-1.19.14-k6.8-src.zip` (and the diff in
-  `misc/rtl8852bu-1.19.14-kernel-6.8.patch`). Build with
+  `misc/7.2/rtl8852bu-1.19.14-k6.8-src.zip` (and the diff in
+  `misc/7.2/rtl8852bu-1.19.14-kernel-6.8.patch`). Build with
   `make USER_EXTRA_CFLAGS="-Wno-error"` against the on-device headers, then drop the
   stripped `8852bu.ko` into `modules/dkms/`.

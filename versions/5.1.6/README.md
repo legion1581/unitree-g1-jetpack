@@ -44,4 +44,4 @@ editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
   so `40-rootfs-static-ip.sh` binds the keyfile to `eth0` (via `NET_IFACE` in `version.env`).
 - **BT**: the stock R35.6.4 BSP ships an `rtk_btusb` too old for our combo (no `0bda:a85b`
   in its patch table). The `rtk_btusb.ko` in `modules/` is built from `rtkbtusb-1.19.14`
-  (see `../../misc/`), which does know the chip.
+  (see `../../misc/5.1.6-6.2.2/`), which does know the chip.

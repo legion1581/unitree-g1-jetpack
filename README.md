@@ -145,7 +145,10 @@ versions/<ver>/
   firmware/                 rtl8852bu_fw{,.bin}, _config{,.bin} -> /lib/firmware/
   modules/                  8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
   overlay/                  rootfs overlay copied onto /  (modprobe.d: 8852bu opts + blacklist)
-misc/                       RTL8852BU WiFi/BT driver sources (DKMS debs + src) — shared
+misc/                       RTL8852BU WiFi/BT driver sources (shared)
+  deb/                      DKMS source packages (8852bu, rtk_btusb)
+  5.1.6-6.2.2/              plain sources that build as-is on kernels <= ~6.3
+  7.2/                      WiFi source patched for kernel 6.8 (+ the diff)
 downloads/<ver>/            cached NVIDIA tarballs            (git-ignored)
 bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
 backups/<ts>_jp<ver>_l4t<ver>/   partition dumps (timestamped + tagged)  (git-ignored)
