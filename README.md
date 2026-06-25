@@ -1,17 +1,15 @@
 # Unitree G1 JetPack
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
-the **Unitree G1 custom carrier** (Jetson Orin NX) — multiple JetPack versions from one branch.
+the **Unitree G1 custom carrier** (Jetson Orin NX).
 
 ## Supported JetPacks
 
-[![JetPack 7.2](https://img.shields.io/badge/JetPack%207.2-L4T%2039.2.0%20%C2%B7%20kernel%206.8.12-2ea44f?style=for-the-badge)](versions/7.2/)
-[![JetPack 6.2.2](https://img.shields.io/badge/JetPack%206.2.2-L4T%2036.5.0%20%C2%B7%20kernel%205.15.185-2ea44f?style=for-the-badge)](versions/6.2.2/)
-[![JetPack 5.1.6](https://img.shields.io/badge/JetPack%205.1.6-L4T%2035.6.4%20%C2%B7%20kernel%205.10.216-2ea44f?style=for-the-badge)](versions/5.1.6/)
+[![JetPack 7.2](https://img.shields.io/badge/JetPack%207.2-L4T%2039.2.0%20%C2%B7%20kernel%206.8.12-2ea44f?style=flat)](versions/7.2/)
+[![JetPack 6.2.2](https://img.shields.io/badge/JetPack%206.2.2-L4T%2036.5.0%20%C2%B7%20kernel%205.15.185-2ea44f?style=flat)](versions/6.2.2/)
+[![JetPack 5.1.6](https://img.shields.io/badge/JetPack%205.1.6-L4T%2035.6.4%20%C2%B7%20kernel%205.10.216-2ea44f?style=flat)](versions/5.1.6/)
 
-Pick one with `-j <ver>` — **required for `init` / `flash`** (no default). All three ✅ tested
-(WiFi · BT · static IP); `backup` / `restore` / `status` don't need a version. Each badge
-links to its `versions/<ver>/`.
+Pick one with `-j <ver>`.
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
@@ -22,8 +20,7 @@ fixes plus a few rootfs tweaks, so a single `-j <ver> flash` gives you a working
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
 
 Each image applies a few carrier patches to the **device tree** (USB3 wiring, MB2 boot) and
-the **rootfs** (login user, static IP, WiFi/BT). The exact, named set lives in
-`versions/<ver>/patches/` — see [Patches](#patches--every-change-in-one-place).
+the **rootfs** (login user, static IP, WiFi/BT).
 
 ## Requirements
 
@@ -83,9 +80,8 @@ holding REC → release **REC** after ~2 s.
 
 ## Commands
 
-**`init` and `flash` require `-j <ver>`** (no silent default — you can't flash the wrong
-JetPack by accident). `backup`/`restore`/`status` are device operations and **take no
-version**. `clean` takes `-j` optionally.
+**`init` and `flash` require `-j <ver>`.** `backup`/`restore`/`status` are device operations
+and **take no version**. `clean` takes `-j` optionally.
 
 ```
 -j, --jetpack <ver>     which JetPack to act on (7.2 | 6.2.2 | 5.1.6) — required for init/flash
@@ -153,34 +149,6 @@ downloads/<ver>/            cached NVIDIA tarballs            (git-ignored)
 bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
 backups/<ts>_jp<ver>_l4t<ver>/   partition dumps (timestamped + tagged)  (git-ignored)
 ```
-
-### Patches — every change in one place
-
-**Every** change made to the image (BSP *and* rootfs) is an individual, named file in
-`versions/<ver>/patches/`, applied in filename order by `apply_patches`. Open that folder
-and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the BSP),
-`$VDIR` (the version dir), `$DTBS`, `$KVER` and the helpers in scope. Current steps:
-
-```
-10-install-carrier-dtb.sh   drop the carrier-patched kernel DTB(s) over the stock ones
-20-mb2-eeprom-fix.sh        MB2: cvb_eeprom_read_size -> 0x0 (carrier has no EEPROM)
-30-rootfs-user.sh           default user / hostname / autologin, bypass oem-config
-40-rootfs-static-ip.sh      NetworkManager keyfile for the static IP on $NET_IFACE
-50-rootfs-wifi-bt.sh        RTL8852BU WiFi+BT modules + firmware + overlay + btusb_bak
-```
-
-Add or change a step by editing/dropping a `NN-name.sh` in that folder — no edits to the
-main script. (10–20 patch the BSP; 30+ run against the extracted rootfs.)
-
-Each version also has its own README with that version's patch table and notes:
-[versions/7.2](versions/7.2/README.md) · [versions/6.2.2](versions/6.2.2/README.md) · [versions/5.1.6](versions/5.1.6/README.md).
-
-### Adding a JetPack version
-
-Create `versions/<new>/` with a `version.env` (copy an existing one and adjust the
-URLs / L4T / kernel / board conf), the `patches/*.sh` steps, the carrier-patched
-`dtb/`, the built `modules/` + `firmware/`, and the `overlay/`. It's then selectable
-with `-j <new>`.
 
 ## Acknowledgements
 
