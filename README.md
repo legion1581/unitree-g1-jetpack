@@ -96,6 +96,9 @@ Hardware notes — **[docs/tips.md](docs/tips.md)**: which head port carries **D
 (port [9], to drive a monitor / bring up the UI) and the **serial console** UART header
 (115200 8N1, 1.8 V).
 
+**WiFi** — **[docs/wifi.md](docs/wifi.md)**: connect as a client (STA) or host an access
+point (AP) with `nmcli`, set up over SSH on first boot via the wired static IP.
+
 ## Commands
 
 **`init` and `flash` require `-j <ver>`.** `backup`/`restore`/`status` are device operations
