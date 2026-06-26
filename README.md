@@ -99,6 +99,10 @@ Hardware notes — **[docs/tips.md](docs/tips.md)**: which head port carries **D
 **WiFi** — **[docs/wifi.md](docs/wifi.md)**: connect as a client (STA) or host an access
 point (AP) with `nmcli`, set up over SSH on first boot via the wired static IP.
 
+**USB3 mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: how the carrier-patched
+DTB rewires the USB3 lanes (XUDC → `usb3-0`, enable `usb3-2`) so recovery RNDIS and the host
+ports work, and where it lives in the device tree.
+
 ## Commands
 
 **`init` and `flash` require `-j <ver>`.** `backup`/`restore`/`status` are device operations
