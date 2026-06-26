@@ -360,16 +360,24 @@ cmd_status() {
     dnum="$(awk '{print $4}' <<<"$dev" | tr -d ':')"
     vidpid="$(awk '{print $6}' <<<"$dev")"
     desc="$(sed -E 's/^.*ID [0-9a-fA-F:]+ //' <<<"$dev")"
+    pid="${vidpid##*:}"          # the 0955:XXXX product id — classify by it, not the
+                                 # description (booted gadget 7020 and recovery initrd
+                                 # 7035 both say "L4T (Linux for Tegra)…").
 
-    if grep -qiE 'Linux for Tegra|0955:7035' <<<"$dev"; then
+    if grep -qi 'APX' <<<"$dev" || [ "$pid" = 7023 ] || [ "$pid" = 7323 ]; then
+        printf '  %-9s %b● APX — bootROM recovery (ready)%b\n' "state" "$G" "$R"
+        printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
+        printf '  %-9s run  %b./g1_custom_jetpack.sh -j <ver> flash | backup | restore%b\n' "next" "$B" "$R"
+    elif [ "$pid" = 7035 ]; then
         printf '  %-9s %b● RNDIS — recovery initrd running%b\n' "state" "$G" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
         printf '  %-9s a backup / restore / flash is in progress\n' "meaning"
         printf '  %-9s wait for it to finish — or  %bssh root@192.168.55.1%b\n' "next" "$B" "$R"
-    elif grep -qi 'APX' <<<"$dev"; then
-        printf '  %-9s %b● APX — bootROM recovery (ready)%b\n' "state" "$G" "$R"
+    elif [ "$pid" = 7020 ]; then
+        printf '  %-9s %b● booted — L4T running, NOT in recovery%b\n' "state" "$Y" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
-        printf '  %-9s run  %b./g1_custom_jetpack.sh -j <ver> flash | backup | restore%b\n' "next" "$B" "$R"
+        printf '  %-9s this is the running OS USB gadget (ssh root@192.168.55.1)\n' "meaning"
+        printf '  %-9s put the board in %bRCM (recovery)%b to flash/backup/restore\n' "next" "$B" "$R"
     else
         printf '  %-9s %b● NVIDIA recovery device%b (unrecognized PID)\n' "state" "$Y" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
