@@ -75,31 +75,15 @@ After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
 
 ## Recovery mode (RCM)
 
-`flash`, `backup`, and `restore` need the NX module in **bootROM recovery (APX)**.
-The PWR/REC buttons and the flashing port are on the NX board inside the G1's chest:
-
-![G1-NX board — power LEDs, PWR/REC buttons, flashing port](docs/g1-nx-board.png)
-
-> ① power indicator lights ② PWR button ③ REC button ④ flashing port
-
-1. Power on the G1; wait until **all three power LEDs are steadily lit**.
-2. Press and **hold PWR + REC together for ~2 s** — the LEDs go from three steady
-   lights to two light (or all off).
-3. Release **PWR**.
-4. Wait ~2 s.
-5. Release **REC**.
-
-Connect the **USB-A → USB-C** cable from the host to the **flashing port** (④), then
-confirm:
+`flash`, `backup`, and `restore` need the NX module in **bootROM recovery (APX)**. The
+easiest way, if the board is booted, is over SSH — no buttons:
 
 ```bash
-./g1_custom_jetpack.sh status     # -> APX — bootROM recovery (ready)
+sudo reboot --force forced-recovery
 ```
 
-If the LEDs misbehave, use the alternative: power off → hold **REC** → power on while
-holding REC → release **REC** after ~2 s.
-
-> Button/port photo and procedure from Unitree's *G1-NX JetPack 6.2 Firmware & Image Update Guide*.
+Then `./g1_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**.
+Button methods and the board photo: **[docs/recovery-mode.md](docs/recovery-mode.md)**.
 
 ## Commands
 
