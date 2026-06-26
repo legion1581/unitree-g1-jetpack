@@ -31,7 +31,7 @@ Pick one with `-j <ver>`.
 > Verified on the G1 carrier.
 >
 > ```bash
-> ./g1_custom_jetpack.sh -j 7.2 --super flash     # also: -j 6.2.2 --super flash
+> ./go2_custom_jetpack.sh -j 7.2 --super flash     # also: -j 6.2.2 --super flash
 > ```
 
 <p align="center">
@@ -64,8 +64,8 @@ the **rootfs** (login user, static IP).
 JP=5.1.6
 
 # board in RECOVERY (RCM) with the USB-C flashing cable connected:
-./g1_custom_jetpack.sh status            # confirm APX (bootROM recovery)
-./g1_custom_jetpack.sh -j $JP flash all  # full flash (QSPI + NVMe rootfs)
+./go2_custom_jetpack.sh status            # confirm APX (bootROM recovery)
+./go2_custom_jetpack.sh -j $JP flash all  # full flash (QSPI + NVMe rootfs)
 ```
 
 `flash` (and `backup` / `restore`) **auto-build the BSP** for the chosen version if
@@ -75,8 +75,8 @@ you want to (re)build the BSP without flashing.
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
 **`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2).
 
-> `-j` can also be given as the `G1_JP` environment variable
-> (e.g. `G1_JP=5.1.6 ./g1_custom_jetpack.sh init`).
+> `-j` can also be given as the `GO2_JP` environment variable
+> (e.g. `GO2_JP=5.1.6 ./go2_custom_jetpack.sh init`).
 
 ## Recovery mode (RCM)
 
@@ -87,7 +87,7 @@ easiest way, if the board is booted, is over SSH — no buttons:
 sudo reboot --force forced-recovery
 ```
 
-Then `./g1_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**.
+Then `./go2_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**.
 Button methods and the board photo: **[docs/recovery-mode.md](docs/recovery-mode.md)**.
 
 ## Tips
@@ -118,9 +118,9 @@ clean [all|bsp|backup]  with -j: that version's BSP; without: all BSPs. backup =
 ```
 
 ```bash
-./g1_custom_jetpack.sh -j 5.1.6 flash all     # flash 5.1.6 (builds the BSP first if needed)
-./g1_custom_jetpack.sh -j 7.2 --super flash   # flash 7.2 in Super mode (MAXN_SUPER + 40W)
-./g1_custom_jetpack.sh backup                 # no -j needed
+./go2_custom_jetpack.sh -j 5.1.6 flash all     # flash 5.1.6 (builds the BSP first if needed)
+./go2_custom_jetpack.sh -j 7.2 --super flash   # flash 7.2 in Super mode (MAXN_SUPER + 40W)
+./go2_custom_jetpack.sh backup                 # no -j needed
 ```
 
 options: `--yes` skips the confirmation prompt on destructive operations. `--super`
@@ -139,17 +139,17 @@ the script elevates the privileged steps itself.
 the JetPack + L4T it was taken with:
 
 ```bash
-./g1_custom_jetpack.sh backup                 # -> backups/20260625-141233_jp6.2.2_l4t36.5.0/
-./g1_custom_jetpack.sh backup my-snapshot     # -> backups/my-snapshot/   (explicit name)
+./go2_custom_jetpack.sh backup                 # -> backups/20260625-141233_jp6.2.2_l4t36.5.0/
+./go2_custom_jetpack.sh backup my-snapshot     # -> backups/my-snapshot/   (explicit name)
 ```
 
 `restore` with **no argument** scans `backups/` and, if there's more than one, shows a
 menu to pick from. You can also pass a backup **name** (under `backups/`) or a **full path**:
 
 ```bash
-./g1_custom_jetpack.sh restore                                    # pick from a menu
-./g1_custom_jetpack.sh restore 20260625-141233_jp6.2.2_l4t36.5.0  # by name
-./g1_custom_jetpack.sh restore /mnt/usb/some-dump                 # by path
+./go2_custom_jetpack.sh restore                                    # pick from a menu
+./go2_custom_jetpack.sh restore 20260625-141233_jp6.2.2_l4t36.5.0  # by name
+./go2_custom_jetpack.sh restore /mnt/usb/some-dump                 # by path
 ```
 
 `backup`/`restore` borrow a recovery initrd from **any already-built BSP** (or build the
@@ -159,7 +159,7 @@ serves every version. No version needs to be specified.
 ## Repo layout
 
 ```
-g1_custom_jetpack.sh        the one script (version-aware; -j selects the JetPack)
+go2_custom_jetpack.sh        the one script (version-aware; -j selects the JetPack)
 versions/<ver>/
   version.env               version knobs — URLs, board conf, kernel version, user/IP
   patches/*.sh              every BSP + rootfs change, named, sourced in order

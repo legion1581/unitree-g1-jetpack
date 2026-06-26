@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# g1_custom_jetpack.sh — build, back up, restore and flash a JetPack image for the
+# go2_custom_jetpack.sh — build, back up, restore and flash a JetPack image for the
 # Unitree G1 custom carrier board (Jetson Orin NX, p3767 on a p3768-class carrier).
 #
-#   ./g1_custom_jetpack.sh [-j <ver>] <command> [args]
+#   ./go2_custom_jetpack.sh [-j <ver>] <command> [args]
 #
 # JetPack version:
 #   -j, --jetpack <ver>   the JetPack to act on; each lives under versions/<ver>/.
 #                         REQUIRED for init/flash. Optional for clean (scopes to one
 #                         version, else all). Ignored by backup/restore/status — those
 #                         are device ops; backup/restore auto-pick a built BSP's initrd.
-#                         e.g.  -j 5.1.6   |   -j 6.2.2   (env: G1_JP=<ver>)
+#                         e.g.  -j 5.1.6   |   -j 6.2.2   (env: GO2_JP=<ver>)
 #
 # Commands:
 #   init                 download + extract + patch a flash-ready BSP into bsp/<ver>
@@ -35,7 +35,7 @@
 # (versions/<ver>/dtb/), not generated.
 #
 # Layout:
-#   g1_custom_jetpack.sh                   this script (version-aware)
+#   go2_custom_jetpack.sh                   this script (version-aware)
 #   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
 #   versions/<ver>/patches/*.sh            every BSP + rootfs change (named, in order)
 #   versions/<ver>/dtb/                    per-version payload (carrier-patched DTB)
@@ -58,7 +58,7 @@ usage() {
 
 # --- arg parsing -----------------------------------------------------------------
 VERSIONS="$HERE/versions"
-JP="${G1_JP:-}"                       # from -j/--jetpack or env G1_JP — no silent default
+JP="${GO2_JP:-}"                       # from -j/--jetpack or env GO2_JP — no silent default
 YES=false; SUPER=false; POS=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -200,7 +200,7 @@ cmd_init() {
 
     touch "$LFT/$INIT_MARKER" 2>/dev/null || $SUDO touch "$LFT/$INIT_MARKER"
     ok "BSP ready: $LFT"
-    echo "    next:  ./g1_custom_jetpack.sh -j $JP flash all   (board in RCM)"
+    echo "    next:  ./go2_custom_jetpack.sh -j $JP flash all   (board in RCM)"
 }
 
 # Run every versions/<ver>/patches/*.sh in sorted order — the COMPLETE set of BSP +
@@ -366,7 +366,7 @@ cmd_status() {
     if grep -qi 'APX' <<<"$dev" || [ "$pid" = 7023 ] || [ "$pid" = 7323 ]; then
         printf '  %-9s %b● APX — bootROM recovery (ready)%b\n' "state" "$G" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"
-        printf '  %-9s run  %b./g1_custom_jetpack.sh -j <ver> flash | backup | restore%b\n' "next" "$B" "$R"
+        printf '  %-9s run  %b./go2_custom_jetpack.sh -j <ver> flash | backup | restore%b\n' "next" "$B" "$R"
     elif [ "$pid" = 7035 ]; then
         printf '  %-9s %b● RNDIS — recovery initrd running%b\n' "state" "$G" "$R"
         printf '  %-9s %s  %s  %b(bus %s / dev %s)%b\n' "device" "$vidpid" "$desc" "$DIM" "$bus" "$dnum" "$R"

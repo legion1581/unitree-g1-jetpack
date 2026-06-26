@@ -5,7 +5,7 @@ of the three methods below, connect the **USB-A → USB-C** cable from the host 
 **flashing port**, then confirm:
 
 ```bash
-./g1_custom_jetpack.sh status     # -> APX — bootROM recovery (ready)
+./go2_custom_jetpack.sh status     # -> APX — bootROM recovery (ready)
 ```
 
 The PWR/REC buttons and the flashing port are on the NX board inside the G1's chest:

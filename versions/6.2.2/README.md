@@ -2,7 +2,7 @@
 
 **L4T 36.5.0** · kernel **5.15.185-tegra** · Ubuntu 22.04
 
-Per-version payload applied to NVIDIA's BSP by `g1_custom_jetpack.sh` (`-j 6.2.2`).
+Per-version payload applied to NVIDIA's BSP by `go2_custom_jetpack.sh` (`-j 6.2.2`).
 The Go2 dock has **no WiFi/BT**, so this image ships none.
 
 ## Patches
