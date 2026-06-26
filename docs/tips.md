@@ -20,8 +20,8 @@ debug header** next to the module (red arrow below). Pinout, **left → right**:
 | pin | signal |
 |--|--|
 | 1 | **NC** (not connected) |
-| 2 | **TX** (board → host) |
-| 3 | **RX** (host → board) |
+| 2 | **RX** (host → board) |
+| 3 | **TX** (board → host) |
 | 4 | **GND** |
 
 ![Jetson serial-console UART header on the G1 carrier](jetson-serial-console.jpg)
@@ -29,6 +29,6 @@ debug header** next to the module (red arrow below). Pinout, **left → right**:
 - **115200 baud, 8N1**, no flow control.
 - **1.8 V logic level** — use a **1.8 V** USB-TTL adapter. A 3.3 V or 5 V adapter can
   damage the SoC; don't use one.
-- Wiring (crossed): adapter **RX ← board TX (pin 2)**, adapter **TX → board RX (pin 3)**,
+- Wiring (crossed): adapter **RX ← board TX (pin 3)**, adapter **TX → board RX (pin 2)**,
   **GND → GND (pin 4)**. Leave pin 1 (NC) unconnected.
 - Then on the host, e.g.: `sudo screen /dev/ttyUSB0 115200`  (or `minicom`, `picocom`).
