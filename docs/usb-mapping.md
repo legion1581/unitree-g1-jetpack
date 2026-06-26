@@ -53,6 +53,23 @@ Result, by `phy-names` (controller → lanes it owns):
 A `board-version` string is also stamped into the root node so a flashed board is
 identifiable (`g1nx-jetpack<ver>-robolegion-r<l4t>-<date>-vN`).
 
+## Full lane map (G1 patched)
+
+Each SuperSpeed port pairs with a USB2 **companion** (`usb3-N ↔ usb2-N`). The USB2 lane's
+`mode` decides device vs host: `usb2-0` is **OTG** (device-capable) and is the lane XUDC
+takes for recovery; the rest are host-only.
+
+| SuperSpeed port | USB2 companion | USB2 mode | Controller(s) | Use |
+|--|--|--|--|--|
+| `usb3-0` | `usb2-0` | **otg** | **XUDC** + xHCI | flashing / recovery USB-C — device-mode RNDIS (`192.168.55.1`), also host |
+| `usb3-1` | `usb2-1` | host | xHCI | host port |
+| `usb3-2` | `usb2-2` | host | xHCI | host port |
+| `usb3-3` | — | — | — | disabled |
+| `usb2-3` | — | — | — | disabled |
+
+So: 3 active SuperSpeed ports, one of which (`usb3-0`/`usb2-0`) doubles as the device-mode
+recovery port. Stock instead put the OTG lane on `usb3-1` and left `usb3-2` off.
+
 ## Where it lives (node paths differ by L4T)
 
 The padctl subtree (pads/lanes/ports) is identical across versions; only the **node paths**
