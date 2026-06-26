@@ -1,15 +1,23 @@
 # Unitree G1 JetPack
 
+[![version](https://img.shields.io/badge/version-1.0.0-blue?style=flat)](VERSION)
+[![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20NX-76b900?style=flat)](#supported-jetpacks)
+[![JetPack 5.1.6](https://img.shields.io/badge/JetPack-5.1.6-2ea44f?style=flat)](versions/5.1.6/)
+[![JetPack 6.2.2](https://img.shields.io/badge/JetPack-6.2.2-2ea44f?style=flat)](versions/6.2.2/)
+[![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
+
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
 the **Unitree G1 custom carrier** (Jetson Orin NX).
 
 ## Supported JetPacks
 
-[![JetPack 7.2](https://img.shields.io/badge/JetPack%207.2-L4T%2039.2.0%20%C2%B7%20kernel%206.8.12-2ea44f?style=flat)](versions/7.2/)
-[![JetPack 6.2.2](https://img.shields.io/badge/JetPack%206.2.2-L4T%2036.5.0%20%C2%B7%20kernel%205.15.185-2ea44f?style=flat)](versions/6.2.2/)
-[![JetPack 5.1.6](https://img.shields.io/badge/JetPack%205.1.6-L4T%2035.6.4%20%C2%B7%20kernel%205.10.216-2ea44f?style=flat)](versions/5.1.6/)
+| JetPack | L4T | Kernel | Ubuntu | WiFi | BT | Notes |
+|--|--|--|--|:--:|:--:|--|
+| [5.1.6](versions/5.1.6/) | 35.6.4 | 5.10.216-tegra | 20.04 | ✅ | ✅ | |
+| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | ✅ | ✅ | |
+| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | ✅ | ✅ | `--super` → MAXN_SUPER + 40W |
 
-Pick one with `-j <ver>`.
+All tested on hardware. Pick one with `-j <ver>`.
 
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
@@ -97,11 +105,15 @@ clean [all|bsp|backup]  with -j: that version's BSP; without: all BSPs. backup =
 
 ```bash
 ./g1_custom_jetpack.sh -j 5.1.6 flash all     # flash 5.1.6 (builds the BSP first if needed)
+./g1_custom_jetpack.sh -j 7.2 --super flash   # flash 7.2 in Super mode (MAXN_SUPER + 40W)
 ./g1_custom_jetpack.sh backup                 # no -j needed
 ```
 
-options: `--yes` skips the confirmation prompt on destructive operations. Most operations
-need `sudo`; the script elevates the privileged steps itself.
+options: `--yes` skips the confirmation prompt on destructive operations. `--super`
+(7.2 only) flashes NVIDIA's Super board config — it enables the **MAXN_SUPER** power
+mode and a **40 W** mode, but draws much more power, so confirm the G1 carrier's rail
+and cooling can handle it before using it in the robot. Most operations need `sudo`;
+the script elevates the privileged steps itself.
 
 > **Editing a version?** `flash` auto-rebuilds the BSP when anything under
 > `versions/<ver>/` is newer than the last build, so a changed patch/asset is never

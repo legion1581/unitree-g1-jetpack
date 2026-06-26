@@ -24,6 +24,9 @@
 #
 # Options:
 #   --yes           skip the confirmation prompt on destructive operations
+#   --super         (flash/init) use NVIDIA's "Super" board config — MAXN_SUPER + a
+#                   40W power mode. Only versions that define BOARD_CONF_SUPER (7.2).
+#                   Orin NX pulls much more power; confirm the carrier rail + cooling.
 #   -h, --help
 #
 # EVERY change made to the image is a **named file** under versions/<ver>/patches/*.sh
@@ -57,12 +60,13 @@ usage() {
 # --- arg parsing -----------------------------------------------------------------
 VERSIONS="$HERE/versions"
 JP="${G1_JP:-}"                       # from -j/--jetpack or env G1_JP — no silent default
-YES=false; POS=()
+YES=false; SUPER=false; POS=()
 while [ $# -gt 0 ]; do
     case "$1" in
         -j|--jetpack)     [ $# -ge 2 ] || die "-j/--jetpack needs a version"; JP="$2"; shift 2;;
         --jetpack=*|-j=*) JP="${1#*=}"; shift;;
         --yes)            YES=true; shift;;
+        --super)          SUPER=true; shift;;
         -h|--help|help)   usage 0;;
         *)                POS+=("$1"); shift;;
     esac
@@ -108,6 +112,11 @@ case "$CMD" in
         [ -n "$JP" ] || die "'$CMD' needs a JetPack version: -j <ver>   (available: $(list_versions))"
         load_version "$JP"
         log "JetPack $JP — L4T ${L4T_VER}, kernel ${KVER}   [versions/$JP]"
+        if $SUPER; then
+            [ -n "${BOARD_CONF_SUPER:-}" ] || die "--super is not available for JetPack $JP (no BOARD_CONF_SUPER in version.env)"
+            BOARD_CONF="$BOARD_CONF_SUPER"
+            warn "SUPER mode: board config '$BOARD_CONF' (MAXN_SUPER + 40W) — confirm the carrier rail + cooling can supply it"
+        fi
         ;;
     backup|restore)
         [ -n "$JP" ] || JP="$(recovery_jp)"
@@ -126,6 +135,10 @@ case "$CMD" in
     status) : ;;
     *)      die "unknown command: $CMD (try --help)" ;;
 esac
+
+if $SUPER && [ "$CMD" != flash ] && [ "$CMD" != init ]; then
+    warn "--super only affects 'flash' / 'init' — ignored for '$CMD'"
+fi
 
 need() { command -v "$1" >/dev/null || die "missing tool: $1"; }
 confirm() {
