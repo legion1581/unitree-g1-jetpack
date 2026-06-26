@@ -38,8 +38,7 @@
 #   g1_custom_jetpack.sh                   this script (version-aware)
 #   versions/<ver>/version.env             URLs, board conf, kernel ver, user/IP
 #   versions/<ver>/patches/*.sh            every BSP + rootfs change (named, in order)
-#   versions/<ver>/{dtb,firmware,modules,overlay}   per-version payload
-#   misc/                                  WiFi/BT driver sources (shared)
+#   versions/<ver>/dtb/                    per-version payload (carrier-patched DTB)
 #   downloads/<ver>/                       cached NVIDIA .tbz2 tarballs  (git-ignored)
 #   bsp/<ver>/Linux_for_Tegra              extracted + patched BSP       (git-ignored)
 #   backups/<ts>_jp<ver>_l4t<ver>/         partition dumps               (git-ignored)

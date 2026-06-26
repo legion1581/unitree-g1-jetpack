@@ -1,8 +1,8 @@
 # Unitree G1 JetPack
 
 <p align="center">
-  <img src="docs/header-desktop.png" alt="JetPack 7.2 desktop on the Unitree G1 — Ubuntu 24.04 with WiFi, BT and 40 W (MAXN_SUPER) live" width="100%">
-  <br><sub>JetPack 7.2 (Ubuntu 24.04) on the G1 — WiFi · BT · 40 W MAXN_SUPER all live</sub>
+  <img src="docs/header-desktop.png" alt="JetPack 7.2 desktop — Ubuntu 24.04 on Jetson Orin NX" width="100%">
+  <br><sub>JetPack 7.2 (Ubuntu 24.04) desktop on Jetson Orin NX</sub>
 </p>
 
 [![version](https://img.shields.io/badge/version-2.0.2-blue?style=flat)](VERSION)
@@ -16,13 +16,13 @@ the **Unitree G1 custom carrier** (Jetson Orin NX).
 
 ## Supported JetPacks
 
-| JetPack | L4T | Kernel | Ubuntu | WiFi | BT | Notes |
-|--|--|--|--|:--:|:--:|--|
-| [5.1.6](versions/5.1.6/) | 35.6.4 | 5.10.216-tegra | 20.04 | ✅ | ✅ | |
-| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | ✅ | ✅ | `--super` → **157 TOPS** |
-| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | ✅ | ✅ | `--super` → **157 TOPS** |
+| JetPack | L4T | Kernel | Ubuntu | Notes |
+|--|--|--|--|--|
+| [5.1.6](versions/5.1.6/) | 35.6.4 | 5.10.216-tegra | 20.04 | |
+| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | `--super` → **157 TOPS** |
+| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | `--super` → **157 TOPS** |
 
-All tested on hardware. Pick one with `-j <ver>`.
+Pick one with `-j <ver>`.
 
 > [!TIP]
 > **Super mode (`--super`, JetPack 6.2.2 & 7.2) boosts the Orin NX 16 GB from 100 TOPS to
@@ -39,16 +39,16 @@ All tested on hardware. Pick one with `-j <ver>`.
   <br><sub><b>MAXN_SUPER + 40 W live on the G1 carrier</b> (nvpmodel tray menu)</sub>
 </p>
 
-Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
-differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
-onboard WiFi/BT needs an out-of-tree driver. This repo wraps NVIDIA's BSP with those carrier
-fixes plus a few rootfs tweaks, so a single `-j <ver> flash` gives you a working board.
+Stock JetPack doesn't run cleanly on Unitree's custom carrier — the USB3 lanes are wired
+differently (so recovery RNDIS and the USB host ports don't work out of the box). This repo
+wraps NVIDIA's BSP with those carrier fixes plus a few rootfs tweaks, so a single
+`-j <ver> flash` gives you a working board.
 
 > Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
 
 Each image applies a few carrier patches to the **device tree** (USB3 wiring, MB2 boot) and
-the **rootfs** (login user, static IP, WiFi/BT).
+the **rootfs** (login user, static IP).
 
 ## Requirements
 
@@ -73,7 +73,7 @@ it isn't built yet — no separate `init` step needed. Run `init` on its own onl
 you want to (re)build the BSP without flashing.
 
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
-**`192.168.123.164`** (on `eth0`), WiFi + BT up.
+**`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2).
 
 > `-j` can also be given as the `G1_JP` environment variable
 > (e.g. `G1_JP=5.1.6 ./g1_custom_jetpack.sh init`).
@@ -95,9 +95,6 @@ Button methods and the board photo: **[docs/recovery-mode.md](docs/recovery-mode
 Hardware notes — **[docs/tips.md](docs/tips.md)**: which head port carries **DisplayPort**
 (port [9], to drive a monitor / bring up the UI) and the **serial console** UART header
 (115200 8N1, 1.8 V).
-
-**WiFi** — **[docs/wifi.md](docs/wifi.md)**: connect as a client (STA) or host an access
-point (AP) with `nmcli`, set up over SSH on first boot via the wired static IP.
 
 **USB3 mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: how the carrier-patched
 DTB rewires the USB3 lanes (XUDC → `usb3-0`, enable `usb3-2`) so recovery RNDIS and the host
@@ -167,13 +164,6 @@ versions/<ver>/
   version.env               version knobs — URLs, board conf, kernel version, user/IP
   patches/*.sh              every BSP + rootfs change, named, sourced in order
   dtb/                      carrier-patched kernel DTB        -> kernel/dtb + bootloader
-  firmware/                 rtl8852bu_fw{,.bin}, _config{,.bin} -> /lib/firmware/
-  modules/                  8852bu.ko (WiFi), rtk_btusb.ko (BT) -> /lib/modules/<KVER>/updates/
-  overlay/                  rootfs overlay copied onto /  (modprobe.d: 8852bu opts + blacklist)
-misc/                       RTL8852BU WiFi/BT driver sources (shared)
-  deb/                      DKMS source packages (8852bu, rtk_btusb)
-  5.1.6-6.2.2/              plain sources that build as-is on kernels <= ~6.3
-  7.2/                      WiFi source patched for kernel 6.8 (+ the diff)
 downloads/<ver>/            cached NVIDIA tarballs            (git-ignored)
 bsp/<ver>/Linux_for_Tegra   extracted + patched BSP           (git-ignored)
 backups/<ts>_jp<ver>_l4t<ver>/   partition dumps (timestamped + tagged)  (git-ignored)

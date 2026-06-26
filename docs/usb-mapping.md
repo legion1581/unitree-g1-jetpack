@@ -34,8 +34,8 @@ the **G1 carrier** that's wrong:
 
 ## What the patched DTB does
 
-The carrier patch ([`misc/`'s `20-usb3-dtb.py`](../misc/), applied at build time by
-`10-install-carrier-dtb.sh`) rewires three things:
+The carrier-patched DTBs are shipped pre-built in `versions/<ver>/dtb/` and installed at
+build time by `10-install-carrier-dtb.sh`. Relative to stock they rewire three things:
 
 1. **XUDC → `usb3-0`** (move it off the stock `usb3-1`) — so the G1's flashing USB-C is the
    device-mode/recovery port.
