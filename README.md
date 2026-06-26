@@ -23,7 +23,7 @@ All tested on hardware. Pick one with `-j <ver>`.
 > **Super mode (`--super`, JetPack 6.2.2 & 7.2) boosts the Orin NX 16 GB from 100 TOPS to
 > [157 TOPS](https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules/)** —
 > NVIDIA's MAXN_SUPER power mode (GPU up to 1173 MHz, 40 W envelope), no hardware change.
-> Verified on the G1 carrier. Just confirm the carrier rail + cooling can sustain 40 W.
+> Verified on the G1 carrier.
 >
 > ```bash
 > ./g1_custom_jetpack.sh -j 7.2 --super flash     # also: -j 6.2.2 --super flash
