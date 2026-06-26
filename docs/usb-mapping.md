@@ -78,7 +78,6 @@ dtc -I dtb -O dts kernel.dtb | grep -A3 -iE 'xudc|xhci@|phy-names'
 
 ## Carrier-specific — not portable as-is
 
-This lane mapping is **specific to the G1 carrier**. Other Unitree carriers wire the lanes
-differently — e.g. the **Go2** dock keeps **XUDC on `usb3-1`** (the stock lane) and only
-enables `usb3-2`. So a DTB patched for the G1 will put recovery on the wrong port on a Go2,
-and vice-versa: always derive the mapping per board.
+This lane mapping is **specific to the G1 carrier**. Other carriers wire the SuperSpeed
+lanes differently, so a DTB patched for the G1 can put recovery on the wrong port elsewhere —
+always derive the mapping per board.
