@@ -85,6 +85,12 @@ sudo reboot --force forced-recovery
 Then `./g1_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**.
 Button methods and the board photo: **[docs/recovery-mode.md](docs/recovery-mode.md)**.
 
+## Tips
+
+Hardware notes — **[docs/tips.md](docs/tips.md)**: which head port carries **DisplayPort**
+(port [9], to drive a monitor / bring up the UI) and the **serial console** UART header
+(115200 8N1, 1.8 V).
+
 ## Commands
 
 **`init` and `flash` require `-j <ver>`.** `backup`/`restore`/`status` are device operations
