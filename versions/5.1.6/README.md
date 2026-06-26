@@ -19,11 +19,17 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 ## Payload
 
 - `version.env` — URLs, board conf, kernel version, user/IP
-- `dtb/` — carrier-patched kernel DTB: `tegra234-p3767-0000-p3768-0000-a0.dtb`
+- `dtb/` — carrier-patched kernel DTBs (one per module variant; the flash conf
+  auto-selects by EEPROM board SKU):
+  - `tegra234-p3767-0000-p3768-0000-a0.dtb` — Orin **NX** (SKU 0000)
+  - `tegra234-p3767-0003-p3768-0000-a0.dtb` — Orin **Nano 8GB** (SKU 0003) — the Go2 module
 
 ## Notes
 
 - Wired NIC is **`eth0`** (this image boots `net.ifnames=0`).
-- ⚠️ **go2 branch WIP:** the DTB here is still the **G1** carrier DTB — swap in the Go2
-  carrier DTB before flashing a Go2 dock (the USB3 lane wiring differs: G1 puts the
-  recovery lane on `usb3-0`, the Go2 dock keeps it on `usb3-1`).
+- Both DTBs carry the **identical** carrier USB3 transform (XUDC → `usb3-0`, enable
+  `usb3-2`, realign companions) — the same patch the G1 uses; only the module variant
+  differs. The Nano (0003) is the actual Go2 dock module.
+- ⚠️ **go2 branch WIP:** the USB3 wiring applied is the **G1 carrier's**. It's confirmed
+  to bring up recovery RNDIS on the Go2 dock, but whether the Go2 carrier routes the
+  USB3 **host** lanes identically to the G1 is still pending a hardware test.
