@@ -29,6 +29,11 @@ All tested on hardware. Pick one with `-j <ver>`.
 > ./g1_custom_jetpack.sh -j 7.2 --super flash
 > ```
 
+<p align="center">
+  <img src="docs/super-power-modes.png" alt="Jetson power-mode menu on the G1 — MAXN SUPER plus 10/15/25/40 W, running at 40 W" width="280">
+  <br><sub><b>MAXN_SUPER + 40 W live on the G1 carrier</b> (nvpmodel tray menu)</sub>
+</p>
+
 Stock JetPack doesn't run cleanly on the G1's custom carrier — the USB3 lanes are wired
 differently (so recovery RNDIS and the USB host ports don't work out of the box), and the
 onboard WiFi/BT needs an out-of-tree driver. This repo wraps NVIDIA's BSP with those carrier
