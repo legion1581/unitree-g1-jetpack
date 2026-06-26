@@ -55,12 +55,14 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
   R36 `/bus@0/...` form, so the carrier DTB patch is the same fix as 6.2.2.
 - **NIC name is `enP8p1s0`** — the 7.2 image uses predictable names (not `net.ifnames=0`),
   so the static IP binds to `enP8p1s0`, not `eth0`.
-- **Super mode (`--super`)** — `./g1_custom_jetpack.sh -j 7.2 --super flash` flashes
+- **Super mode (`--super`) — 100 → [157 TOPS](https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules/)
+  on the Orin NX 16 GB.** `./g1_custom_jetpack.sh -j 7.2 --super flash` flashes
   NVIDIA's `jetson-orin-nano-devkit-super` board config (`BOARD_CONF_SUPER`). That uses
   the `-nv-super` kernel DTB + super BPMP DTB; the DTB's `…-super` compatible makes
   `nvpower.sh` symlink the **MAXN_SUPER** nvpmodel conf (adds `MAXN_SUPER` + a **40 W**
-  mode, default 40 W) instead of the standard `MAXN/10W/15W/25W`. The carrier USB3 fix
-  is applied to **both** DTBs, so recovery/USB still work either way. Caveats: Orin NX
+  mode, GPU up to **1173 MHz**, default 40 W) instead of the standard `MAXN/10W/15W/25W`.
+  The carrier USB3 fix is applied to **both** DTBs, so recovery/USB still work either way.
+  **Verified on the G1 carrier** (`nvpmodel -q` → MAXN_SUPER, 40 W). Caveats: Orin NX
   pulls far more power in Super — confirm the G1 carrier's VDD_IN rail and cooling first;
   and an early-FAB module (TS1/EB1) is rejected by NVIDIA's super overlay.
 - **Rebuilding WiFi for a newer kernel**: the patched source is in
