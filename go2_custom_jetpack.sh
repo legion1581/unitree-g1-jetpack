@@ -273,10 +273,14 @@ cmd_backup() {
     confirm "Back up the board (RCM) -> $final ?"
     rootfs_unmount
     mkdir -p "$stage"
+    # R35's l4t_backup_restore.sh brings up usb0/NFS itself and rejects --network;
+    # R36+ requires it to be passed explicitly.
+    local -a netargs=(); [ "${L4T_VER%%.*}" -ge 36 ] && netargs=(--network usb0)
     ( cd "$LFT" && $SUDO ./tools/backup_restore/l4t_backup_restore.sh \
-        --network usb0 -e nvme0n1 -b "$BOARD_CONF" )
+        "${netargs[@]}" -e nvme0n1 -b "$BOARD_CONF" ) || die "backup_restore tool failed"
     log "collecting images -> $stage"
     $SUDO mv "$BR/images/"* "$stage/" 2>/dev/null || true
+    [ -n "$(ls -A "$stage" 2>/dev/null)" ] || die "no images produced — backup did not run (check RCM/RNDIS link)"
     [ "$stage" = "$final" ] || mv "$stage" "$final"
     ok "backup saved to $final"
 }
@@ -303,8 +307,9 @@ cmd_restore() {
     $SUDO rm -rf "$BR/images"; $SUDO mkdir -p "$BR/images"
     $SUDO cp -a "$dir/." "$BR/images/"
     $SUDO rm -rf "$BR/images/tmp"          # backup tool leftover, not a partition image
+    local -a netargs=(); [ "${L4T_VER%%.*}" -ge 36 ] && netargs=(--network usb0)
     ( cd "$LFT" && $SUDO ./tools/backup_restore/l4t_backup_restore.sh \
-        --network usb0 -e nvme0n1 -r "$BOARD_CONF" )
+        "${netargs[@]}" -e nvme0n1 -r "$BOARD_CONF" ) || die "backup_restore tool failed"
     $SUDO rm -rf "$BR/images"              # free the staging copy on success
     ok "restore complete"
 }
