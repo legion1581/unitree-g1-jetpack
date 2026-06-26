@@ -14,19 +14,19 @@ the **Unitree G1 custom carrier** (Jetson Orin NX).
 | JetPack | L4T | Kernel | Ubuntu | WiFi | BT | Notes |
 |--|--|--|--|:--:|:--:|--|
 | [5.1.6](versions/5.1.6/) | 35.6.4 | 5.10.216-tegra | 20.04 | ✅ | ✅ | |
-| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | ✅ | ✅ | |
-| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | ✅ | ✅ | `--super` → MAXN_SUPER · 40 W · **157 TOPS** |
+| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | ✅ | ✅ | `--super` → **157 TOPS** |
+| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | ✅ | ✅ | `--super` → **157 TOPS** |
 
 All tested on hardware. Pick one with `-j <ver>`.
 
 > [!TIP]
-> **Super mode (`--super`, JetPack 7.2) boosts the Orin NX 16 GB from 100 TOPS to
+> **Super mode (`--super`, JetPack 6.2.2 & 7.2) boosts the Orin NX 16 GB from 100 TOPS to
 > [157 TOPS](https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules/)** —
 > NVIDIA's MAXN_SUPER power mode (GPU up to 1173 MHz, 40 W envelope), no hardware change.
 > Verified on the G1 carrier. Just confirm the carrier rail + cooling can sustain 40 W.
 >
 > ```bash
-> ./g1_custom_jetpack.sh -j 7.2 --super flash
+> ./g1_custom_jetpack.sh -j 7.2 --super flash     # also: -j 6.2.2 --super flash
 > ```
 
 <p align="center">
@@ -125,7 +125,7 @@ clean [all|bsp|backup]  with -j: that version's BSP; without: all BSPs. backup =
 ```
 
 options: `--yes` skips the confirmation prompt on destructive operations. `--super`
-(7.2 only) flashes NVIDIA's Super board config — it enables the **MAXN_SUPER** power
+(JetPack 6.2.2 / 7.2) flashes NVIDIA's Super board config — it enables the **MAXN_SUPER** power
 mode and a **40 W** mode, but draws much more power, so confirm the G1 carrier's rail
 and cooling can handle it before using it in the robot. Most operations need `sudo`;
 the script elevates the privileged steps itself.
