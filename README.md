@@ -1,5 +1,10 @@
 # Unitree G1 JetPack
 
+<p align="center">
+  <img src="docs/header-desktop.png" alt="JetPack 7.2 desktop on the Unitree G1 — Ubuntu 24.04 with WiFi, BT and 40 W (MAXN_SUPER) live" width="100%">
+  <br><sub>JetPack 7.2 (Ubuntu 24.04) on the G1 — WiFi · BT · 40 W MAXN_SUPER all live</sub>
+</p>
+
 [![version](https://img.shields.io/badge/version-2.0.2-blue?style=flat)](VERSION)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20NX-76b900?style=flat)](#supported-jetpacks)
 [![JetPack 5.1.6](https://img.shields.io/badge/JetPack-5.1.6-2ea44f?style=flat)](versions/5.1.6/)
