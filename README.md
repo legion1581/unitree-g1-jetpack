@@ -5,7 +5,7 @@
   <br><sub>JetPack (Ubuntu) desktop on the Unitree Go2 dock's Jetson</sub>
 </p>
 
-[![version](https://img.shields.io/badge/version-2.0.2-blue?style=flat)](VERSION)
+[![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat)](VERSION)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20NX-76b900?style=flat)](#supported-jetpacks)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20Nano-76b900?style=flat)](#supported-jetpacks)
 [![JetPack 5.1.6](https://img.shields.io/badge/JetPack-5.1.6-2ea44f?style=flat)](versions/5.1.6/)

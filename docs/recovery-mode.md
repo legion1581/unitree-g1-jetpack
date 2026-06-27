@@ -26,6 +26,11 @@ The Go2 dock has no software-accessible PWR/REC buttons exposed; you trigger rec
 power-cycling the carrier while holding its recovery button. From the
 [RoboLegion Go2 EDU guide](https://robolegion.com/unitree-go2-edu-jetpack-6-2-1-update/):
 
+![Go2 Jetson carrier — M8 / BAT / RJ45 ports with the USB-C flashing cable connected](go2-recovery-board-1.jpg)
+
+> The carrier ports, **left → right: `M8`, `BAT` (yellow power connector), `RJ45`**. The
+> USB-C **flashing cable** plugs in next to them.
+
 1. **Connect the USB-C cable** from the top of the Jetson to your PC.
    *(If the USB-C port is hard to reach, loosen the four Jetson carrier-board screws slightly
    and remove the screws holding the mounting strap to improve access.)*
@@ -36,6 +41,11 @@ power-cycling the carrier while holding its recovery button. From the
 4. **While holding the button, reconnect the BAT power connector** to the `BAT` port.
 5. **Keep holding for ~2 seconds**, then release.
 6. **Confirm** on the host with `./go2_custom_jetpack.sh status` → **APX**.
+
+![Pressing the recovery button on the Go2 Jetson carrier with a pin](go2-recovery-board-2.jpg)
+
+> Step 3–5: a pin in the **recovery button** hole (next to the `RJ45` / `5V/12V` label)
+> while you reconnect `BAT` and hold ~2 s.
 
 > ⚠️ Flashing JetPack 6.x updates the UEFI firmware in QSPI to R36.4.x, which is
 > **incompatible with JetPack 5.x** — after that the board won't boot a 5.x image until
