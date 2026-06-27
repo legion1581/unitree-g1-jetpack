@@ -12,8 +12,8 @@
 [![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
 
 > [!IMPORTANT]
-> **This is the Unitree G1 branch (`g1`).**
-> Building for the **Unitree Go2** dock? Its JetPack images live on the
+> **This is the Unitree G1 EDU JetPack branch (`g1`).**
+> Looking for the **Unitree Go2 EDU JetPack**? Then use the
 > **[`go2` branch](https://github.com/legion1581/unitree-jetpack/tree/go2)**.
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
