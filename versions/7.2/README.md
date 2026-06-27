@@ -51,6 +51,4 @@ Flashes NVIDIA's `jetson-orin-nano-devkit-super` board config (MAXN_SUPER + 40 W
 boost: **Orin NX 16 GB 100 → 157**, **Orin Nano 8 GB 40 → 67**. Draws much more power —
 confirm the Go2 rail + cooling first.
 
-> ⚠️ Not yet hardware-tested on 7.2. The DTB transform is identical to the
-> hardware-verified 5.1.6 set (same padctl result via `--check`); flash-validate before
-> relying on it.
+> ✅ Hardware-verified on the Go2 dock (JetPack 7.2).
