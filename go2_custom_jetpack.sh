@@ -255,6 +255,34 @@ pick_backup() {
     echo "${list[$((c-1))]}"
 }
 
+# Map an L4T release (e.g. 36.4.7) to its JetPack version. Exact for the common Orin
+# releases this repo handles; otherwise the JetPack series by L4T major.
+l4t_to_jp() {
+    case "$1" in
+        35.6.4) echo 5.1.6 ;; 35.6.1|35.6.0) echo 5.1.5 ;; 35.5.0) echo 5.1.4 ;;
+        35.4.1) echo 5.1.2 ;; 35.3.1) echo 5.1.1 ;; 35.2.1) echo 5.1 ;;
+        36.4.0) echo 6.1 ;; 36.4.3) echo 6.2 ;; 36.4.4|36.4.7) echo 6.2.1 ;; 36.5.0) echo 6.2.2 ;;
+        39.2.0) echo 7.2 ;;
+        35.*) echo 5.x ;; 36.*) echo 6.x ;; 39.*) echo 7.x ;; *) echo unknown ;;
+    esac
+}
+
+# Read the on-board JetPack + L4T from a backup's rootfs tarball (/etc/nv_tegra_release).
+# Sets REAL_JP and REAL_L4T; returns non-zero if it can't be determined.
+read_board_version() {
+    local tarf="$1" rel maj rev
+    [ -f "$tarf" ] || return 1
+    rel="$(tar xzf "$tarf" --occurrence=1 -O ./etc/nv_tegra_release 2>/dev/null)"
+    [ -n "$rel" ] || rel="$(tar xzf "$tarf" --occurrence=1 -O etc/nv_tegra_release 2>/dev/null)"
+    [ -n "$rel" ] || return 1
+    maj="$(printf '%s' "$rel" | grep -oiE 'R[0-9]+' | head -1 | tr -dc '0-9')"
+    rev="$(printf '%s' "$rel" | sed -n 's/.*REVISION: *\([0-9.]\+\).*/\1/p' | head -1)"
+    [ -n "$maj" ] && [ -n "$rev" ] || return 1
+    REAL_L4T="${maj}.${rev}"
+    REAL_JP="$(l4t_to_jp "$REAL_L4T")"
+    return 0
+}
+
 cmd_backup() {
     local arg="${1:-}"
     ensure_bsp
@@ -265,12 +293,12 @@ cmd_backup() {
         case "$arg" in /*) stage="$arg";; *) stage="$BACKUPS/$arg";; esac
         final="$stage"
         [ -d "$stage" ] && [ -n "$(ls -A "$stage" 2>/dev/null)" ] && warn "target not empty — images may be overwritten: $stage"
-    else                                            # auto: timestamp now, tag jp+l4t on success
-        stage="$BACKUPS/$ts"
-        final="$BACKUPS/${ts}_jp${JP_VER}_l4t${L4T_VER}"
+    else                                            # auto: timestamp now; the jp+l4t tag is
+        stage="$BACKUPS/$ts"                        # read from the dumped rootfs after backup
+        final="$stage"
     fi
     recovery_note
-    confirm "Back up the board (RCM) -> $final ?"
+    confirm "Back up the board (RCM) -> $stage ?"
     rootfs_unmount
     mkdir -p "$stage"
     # R35's l4t_backup_restore.sh brings up usb0/NFS itself and rejects --network;
@@ -281,6 +309,17 @@ cmd_backup() {
     log "collecting images -> $stage"
     $SUDO mv "$BR/images/"* "$stage/" 2>/dev/null || true
     [ -n "$(ls -A "$stage" 2>/dev/null)" ] || die "no images produced — backup did not run (check RCM/RNDIS link)"
+    if [ -z "$arg" ]; then                          # auto: tag with the BOARD's real version
+        log "reading on-board version from the dump…"   # (the initrd's may differ)
+        if read_board_version "$stage/nvme0n1p1.tar.gz"; then
+            [ "$REAL_JP/$REAL_L4T" = "$JP_VER/$L4T_VER" ] || \
+                log "on-board: JetPack $REAL_JP (L4T $REAL_L4T) — dumped via the $JP_VER initrd"
+            final="$BACKUPS/${ts}_jp${REAL_JP}_l4t${REAL_L4T}"
+        else
+            warn "couldn't read on-board version from the dump — tagging with the initrd's $JP_VER/$L4T_VER"
+            final="$BACKUPS/${ts}_jp${JP_VER}_l4t${L4T_VER}"
+        fi
+    fi
     [ "$stage" = "$final" ] || mv "$stage" "$final"
     ok "backup saved to $final"
 }
