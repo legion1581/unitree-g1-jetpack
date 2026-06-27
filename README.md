@@ -1,48 +1,55 @@
-# Unitree G1 JetPack
+# Unitree Go2 JetPack
 
 <p align="center">
-  <img src="docs/header-desktop.png" alt="JetPack 7.2 desktop — Ubuntu 24.04 on Jetson Orin NX" width="100%">
-  <br><sub>JetPack 7.2 (Ubuntu 24.04) desktop on Jetson Orin NX</sub>
+  <img src="docs/header-desktop.png" alt="JetPack desktop on the Unitree Go2 dock's Jetson" width="100%">
+  <br><sub>JetPack (Ubuntu) desktop on the Unitree Go2 dock's Jetson</sub>
 </p>
 
 [![version](https://img.shields.io/badge/version-2.0.2-blue?style=flat)](VERSION)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20NX-76b900?style=flat)](#supported-jetpacks)
+[![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20Nano-76b900?style=flat)](#supported-jetpacks)
 [![JetPack 5.1.6](https://img.shields.io/badge/JetPack-5.1.6-2ea44f?style=flat)](versions/5.1.6/)
 [![JetPack 6.2.2](https://img.shields.io/badge/JetPack-6.2.2-2ea44f?style=flat)](versions/6.2.2/)
 [![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
-the **Unitree G1 custom carrier** (Jetson Orin NX).
+the **Unitree Go2 EDU dock** (Jetson **Orin NX** or **Orin Nano** — the flash conf
+auto-selects by module SKU).
 
 ## Supported JetPacks
 
 | JetPack | L4T | Kernel | Ubuntu | Notes |
 |--|--|--|--|--|
 | [5.1.6](versions/5.1.6/) | 35.6.4 | 5.10.216-tegra | 20.04 | |
-| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | `--super` → **157 TOPS** |
-| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | `--super` → **157 TOPS** |
+| [6.2.2](versions/6.2.2/) | 36.5.0 | 5.15.185-tegra | 22.04 | `--super` (MAXN_SUPER) |
+| [7.2](versions/7.2/)     | 39.2.0 | 6.8.12-tegra   | 24.04 | `--super` (MAXN_SUPER) |
 
 Pick one with `-j <ver>`.
 
 > [!TIP]
-> **Super mode (`--super`, JetPack 6.2.2 & 7.2) boosts the Orin NX 16 GB from 100 TOPS to
-> [157 TOPS](https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules/)** —
-> NVIDIA's MAXN_SUPER power mode (GPU up to 1173 MHz, 40 W envelope), no hardware change.
-> Verified on the G1 carrier.
+> **Super mode (`--super`, JetPack 6.2.2 & 7.2)** unlocks NVIDIA's
+> [**MAXN_SUPER**](https://developer.nvidia.com/blog/nvidia-jetpack-6-2-brings-super-mode-to-nvidia-jetson-orin-nano-and-jetson-orin-nx-modules/)
+> power mode (GPU up to 1173 MHz, 40 W envelope) — a big AI-throughput boost with **no
+> hardware change**, on whichever module the Go2 dock carries:
+>
+> | module | stock | **Super** |
+> |--|--|--|
+> | Jetson **Orin NX 16 GB** | 100 TOPS | **157 TOPS** |
+> | Jetson **Orin Nano 8 GB** | 40 TOPS | **67 TOPS** |
 >
 > ```bash
 > ./go2_custom_jetpack.sh -j 7.2 --super flash     # also: -j 6.2.2 --super flash
 > ```
 
 <p align="center">
-  <img src="docs/super-power-modes.png" alt="Jetson power-mode menu on the G1 — MAXN SUPER plus 10/15/25/40 W, running at 40 W" width="280">
-  <br><sub><b>MAXN_SUPER + 40 W live on the G1 carrier</b> (nvpmodel tray menu)</sub>
+  <img src="docs/super-power-modes.png" alt="Jetson power-mode menu — MAXN SUPER plus 10/15/25/40 W, running at 40 W" width="280">
+  <br><sub><b>MAXN_SUPER + 40 W live on the Go2 dock</b> (nvpmodel tray menu)</sub>
 </p>
 
-Stock JetPack doesn't run cleanly on Unitree's custom carrier — the USB3 lanes are wired
-differently (so recovery RNDIS and the USB host ports don't work out of the box). This repo
-wraps NVIDIA's BSP with those carrier fixes plus a few rootfs tweaks, so a single
-`-j <ver> flash` gives you a working board.
+Stock JetPack doesn't run cleanly on the Go2 dock — the USB lanes are wired differently (so
+recovery RNDIS and the device-mode gadget don't come up) and the carrier has **no Type-C CC
+chip**. This repo wraps NVIDIA's BSP with those carrier fixes plus a few rootfs tweaks, so a
+single `-j <ver> flash` gives you a working board.
 
 > Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
@@ -73,7 +80,8 @@ it isn't built yet — no separate `init` step needed. Run `init` on its own onl
 you want to (re)build the BSP without flashing.
 
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
-**`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2).
+**`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2), plus the USB
+device-mode gadget at **`192.168.55.1`** over the flashing Type-C cable.
 
 > `-j` can also be given as the `GO2_JP` environment variable
 > (e.g. `GO2_JP=5.1.6 ./go2_custom_jetpack.sh init`).
@@ -87,18 +95,17 @@ easiest way, if the board is booted, is over SSH — no buttons:
 sudo reboot --force forced-recovery
 ```
 
-Then `./go2_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**.
-Button methods and the board photo: **[docs/recovery-mode.md](docs/recovery-mode.md)**.
+Then `./go2_custom_jetpack.sh status` should show **APX — bootROM recovery (ready)**. The
+hardware **recovery-button + power-cycle** method (no SSH): **[docs/recovery-mode.md](docs/recovery-mode.md)**.
 
 ## Tips
 
-Hardware notes — **[docs/tips.md](docs/tips.md)**: which head port carries **DisplayPort**
-(port [9], to drive a monitor / bring up the UI) and the **serial console** UART header
-(115200 8N1, 1.8 V).
+Hardware notes — **[docs/tips.md](docs/tips.md)**: the **DisplayPort** Type-C connector
+(USB-C → DP/HDMI adapter, to drive a monitor / bring up the UI).
 
-**USB3 mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: how the carrier-patched
-DTB rewires the USB3 lanes (XUDC → `usb3-0`, enable `usb3-2`) so recovery RNDIS and the host
-ports work, and where it lives in the device tree.
+**USB mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: the Go2 dock's three USB
+connectors and which is the only **USB 3.0** port (the USB-A), how the carrier DTB sets up
+device-mode recovery, drops the absent **FUSB301**, and disables the unused SuperSpeed lane.
 
 ## Commands
 
@@ -125,7 +132,7 @@ clean [all|bsp|backup]  with -j: that version's BSP; without: all BSPs. backup =
 
 options: `--yes` skips the confirmation prompt on destructive operations. `--super`
 (JetPack 6.2.2 / 7.2) flashes NVIDIA's Super board config — it enables the **MAXN_SUPER** power
-mode and a **40 W** mode, but draws much more power, so confirm the G1 carrier's rail
+mode and a **40 W** mode, but draws much more power, so confirm the Go2 dock's rail
 and cooling can handle it before using it in the robot. Most operations need `sudo`;
 the script elevates the privileged steps itself.
 

@@ -1,18 +1,12 @@
 # Recovery mode (RCM)
 
-`flash`, `backup`, and `restore` need the NX module in **bootROM recovery (APX)**. Use any
-of the three methods below, connect the **USB-A → USB-C** cable from the host to the
-**flashing port**, then confirm:
+`flash`, `backup`, and `restore` need the Jetson module in **bootROM recovery (APX)**. Use
+either method below, connect the **USB-C flashing cable** from the **top of the Jetson** to
+the host, then confirm:
 
 ```bash
 ./go2_custom_jetpack.sh status     # -> APX — bootROM recovery (ready)
 ```
-
-The PWR/REC buttons and the flashing port are on the NX board inside the G1's chest:
-
-![G1-NX board — power LEDs, PWR/REC buttons, flashing port](g1-nx-board.png)
-
-> ① power indicator lights ② PWR button ③ REC button ④ flashing port
 
 ## Method 1 — software (no buttons, easiest)
 
@@ -23,19 +17,26 @@ locally or over SSH:
 sudo reboot --force forced-recovery
 ```
 
-It drops into APX with no chest access or button timing needed. The USB-C flashing cable
-must be connected so the host sees the APX device.
+It drops into APX with no disassembly or button timing needed. The USB-C flashing cable must
+be connected so the host sees the APX device.
 
-## Method 2 — PWR + REC buttons
+## Method 2 — recovery button + power cycle
 
-1. Power on the G1; wait until **all three power LEDs are steadily lit**.
-2. Press and **hold PWR + REC together for ~2 s** — the LEDs go from three steady
-   lights to two (or all off).
-3. Release **PWR**.
-4. Wait ~2 s.
-5. Release **REC**.
+The Go2 dock has no software-accessible PWR/REC buttons exposed; you trigger recovery by
+power-cycling the carrier while holding its recovery button. From the
+[RoboLegion Go2 EDU guide](https://robolegion.com/unitree-go2-edu-jetpack-6-2-1-update/):
 
-## Method 3 — REC + power-on
+1. **Connect the USB-C cable** from the top of the Jetson to your PC.
+   *(If the USB-C port is hard to reach, loosen the four Jetson carrier-board screws slightly
+   and remove the screws holding the mounting strap to improve access.)*
+2. **Disconnect the BAT power connector** (XT30/XT60) from the **`BAT`** port on the Jetson
+   carrier board — this cuts power to the Jetson module.
+3. **Insert a pin** (paperclip or SIM-eject tool) into the **recovery button** hole and
+   **press and hold** it.
+4. **While holding the button, reconnect the BAT power connector** to the `BAT` port.
+5. **Keep holding for ~2 seconds**, then release.
+6. **Confirm** on the host with `./go2_custom_jetpack.sh status` → **APX**.
 
-If the LEDs misbehave: power off → hold **REC** → power on while holding REC → release
-**REC** after ~2 s.
+> ⚠️ Flashing JetPack 6.x updates the UEFI firmware in QSPI to R36.4.x, which is
+> **incompatible with JetPack 5.x** — after that the board won't boot a 5.x image until
+> re-flashed. (Re-flashing 5.1.6 from this repo rewrites QSPI back, so it's recoverable.)
