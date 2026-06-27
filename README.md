@@ -1,8 +1,8 @@
 # Unitree Go2 JetPack
 
 <p align="center">
-  <img src="docs/header-desktop.png" alt="JetPack desktop on the Unitree Go2 dock's Jetson" width="100%">
-  <br><sub>JetPack (Ubuntu) desktop on the Unitree Go2 dock's Jetson</sub>
+  <img src="docs/header-desktop.png" alt="JetPack 7.2 (Ubuntu 24.04) desktop on the Unitree Go2 dock's Jetson" width="100%">
+  <br><sub>JetPack 7.2 (Ubuntu 24.04) desktop on the Unitree Go2 dock's Jetson</sub>
 </p>
 
 [![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat)](VERSION)
@@ -42,8 +42,8 @@ Pick one with `-j <ver>`.
 > ```
 
 <p align="center">
-  <img src="docs/super-power-modes.png" alt="Jetson power-mode menu — MAXN SUPER plus 10/15/25/40 W, running at 40 W" width="280">
-  <br><sub><b>MAXN_SUPER + 40 W live on the Go2 dock</b> (nvpmodel tray menu)</sub>
+  <img src="docs/super-power-modes.png" alt="Jetson power-mode menu on the Go2 dock — 15 W / 25 W / MAXN SUPER" width="280">
+  <br><sub><b>MAXN_SUPER available on the Go2 dock</b> (nvpmodel tray menu)</sub>
 </p>
 
 Stock JetPack doesn't run cleanly on the Go2 dock — the USB lanes are wired differently (so
