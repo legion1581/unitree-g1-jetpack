@@ -11,6 +11,11 @@
 [![JetPack 6.2.2](https://img.shields.io/badge/JetPack-6.2.2-2ea44f?style=flat)](versions/6.2.2/)
 [![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
 
+> [!IMPORTANT]
+> **This is the Unitree G1 branch (`g1`).**
+> Building for the **Unitree Go2** dock? Its JetPack images live on the
+> **[`go2` branch](https://github.com/legion1581/unitree-jetpack/tree/go2)**.
+
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
 the **Unitree G1 custom carrier** (Jetson Orin NX).
 
