@@ -23,8 +23,7 @@ be connected so the host sees the APX device.
 ## Method 2 — recovery button + power cycle
 
 The Go2 dock has no software-accessible PWR/REC buttons exposed; you trigger recovery by
-power-cycling the carrier while holding its recovery button. From the
-[RoboLegion Go2 EDU guide](https://robolegion.com/unitree-go2-edu-jetpack-6-2-1-update/):
+power-cycling the carrier while holding its recovery button:
 
 ![Go2 Jetson carrier — M8 / BAT / RJ45 ports with the USB-C flashing cable connected](go2-recovery-board-1.jpg)
 
@@ -46,7 +45,3 @@ power-cycling the carrier while holding its recovery button. From the
 
 > Step 3–5: a pin in the **recovery button** hole (next to the `RJ45` / `5V/12V` label)
 > while you reconnect `BAT` and hold ~2 s.
-
-> ⚠️ Flashing JetPack 6.x updates the UEFI firmware in QSPI to R36.4.x, which is
-> **incompatible with JetPack 5.x** — after that the board won't boot a 5.x image until
-> re-flashed. (Re-flashing 5.1.6 from this repo rewrites QSPI back, so it's recoverable.)

@@ -24,7 +24,7 @@ The board's wiring (which physical connector lands on which lane) is described i
 
 | connector | USB2 lane | USB3 lane | speed | role |
 |--|--|--|--|--|
-| **Flashing Type-C** (top of Jetson) | `usb2-0` | `usb3-0` → **disabled** | **USB 2.0 only** | **device** — recovery + L4T gadget (`192.168.55.1`) |
+| **Recovery Type-C** | `usb2-0` | `usb3-0` → **disabled** | **USB 2.0 only** | **device** — recovery + L4T gadget (`192.168.55.1`) |
 | **USB-A** | `usb2-1` | `usb3-1` | **USB 3.0** ✅ | host — **the only SuperSpeed port** |
 | **DP Type-C** | `usb2-2` | `usb3-2` (companion) | **USB 2.0 only** | host — the 4 SuperSpeed pairs carry **DisplayPort**, not USB3 |
 
@@ -32,7 +32,7 @@ Key findings:
 
 - **Only the USB-A port does USB 3.0.** A SuperSpeed device there enumerates at 5 Gbps
   (`usb3-1`).
-- **The flashing Type-C (`usb2-0`) is USB 2.0 only.** It's the OTG/device port; its
+- **The recovery Type-C (`usb2-0`) is USB 2.0 only.** It's the OTG/device port; its
   SuperSpeed lane (`usb3-0`) is not routed to anything useful here, so it's **disabled**.
   Recovery RNDIS is a USB-2 gadget anyway, so this costs nothing.
 - **The DP Type-C (`usb2-2`) is USB 2.0 only.** Its connector's four high-speed pairs are
@@ -41,12 +41,12 @@ Key findings:
 
 ## What the carrier DTB does (vs the stock Nano/NX DTB)
 
-1. **Realign companions / move XUDC to `usb3-0`** so the flashing Type-C (`usb2-0`) is the
+1. **Realign companions / move XUDC to `usb3-0`** so the recovery Type-C (`usb2-0`) is the
    device/recovery port (stock binds XUDC to `usb3-1`).
 2. **`fusb301@25` removed** — the FUSB301 Type-C CC controller is **not populated** on the
    Go2 carrier (its driver probe fails). The node and its OF-graph role-switch link are
    deleted so the kernel stops chasing a phantom chip.
-3. **`usb3-0` disabled** — the flashing Type-C exposes no USB3 host; the lane is turned off
+3. **`usb3-0` disabled** — the recovery Type-C exposes no USB3 host; the lane is turned off
    and removed from both xHCI and XUDC.
 4. **`usb2-0` → `mode = "peripheral"`** — that port is device-only. With no CC chip the OTG
    role never auto-resolves, so a boot unit (`50-force-usb-device-mode.sh`) drives
@@ -63,7 +63,7 @@ Result, by `phy-names` (controller → lanes it owns):
 
 | SuperSpeed port | USB2 companion | USB2 mode | Controller | Connector / use |
 |--|--|--|--|--|
-| `usb3-0` | `usb2-0` | **peripheral** | XUDC | **disabled** (flashing Type-C is USB2 device only) |
+| `usb3-0` | `usb2-0` | **peripheral** | XUDC | **disabled** (recovery Type-C is USB2 device only) |
 | `usb3-1` | `usb2-1` | host | xHCI | **USB-A — USB 3.0** |
 | `usb3-2` | `usb2-2` | host | xHCI | DP Type-C — USB2 + DisplayPort (no USB3) |
 
