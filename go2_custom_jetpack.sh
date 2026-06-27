@@ -118,6 +118,7 @@ case "$CMD" in
         fi
         ;;
     backup|restore)
+        JP_GIVEN=0; [ -n "$JP" ] && JP_GIVEN=1   # did the user force -j? (restore auto-matches if not)
         [ -n "$JP" ] || JP="$(recovery_jp)"
         [ -n "$JP" ] || die "no versions/ found"
         load_version "$JP"
@@ -283,6 +284,27 @@ read_board_version() {
     return 0
 }
 
+# Echo the JetPack version whose RESTORE tooling matches a backup, by inspecting the
+# dump's partition-map *schema* (not its folder name — that's tagged by board version).
+# R35's l4t_backup_restore.sh writes `gpt_1`/`gpt_2` entries; R36+ (nvrestore_partitions.sh)
+# uses a different schema and rejects an R35 map ("GPT does not exist"). Prefers a built
+# BSP of the matching L4T family, else the highest matching version dir (to build). "" = none.
+restore_jp_for() {
+    local map="$1/nvpartitionmap.txt" want v maj built="" any=""
+    [ -f "$map" ] || return 0
+    if grep -qE ',gpt_[12],' "$map"; then want=35; else want=36; fi   # 36 = "R36 or newer"
+    for v in $(list_versions); do
+        maj="$(grep -E '^L4T_VER=' "$VERSIONS/$v/version.env" 2>/dev/null | cut -d'"' -f2)"; maj="${maj%%.*}"
+        [ -n "$maj" ] || continue
+        { [ "$want" = 35 ] && [ "$maj" = 35 ]; } || { [ "$want" = 36 ] && [ "$maj" -ge 36 ]; } || continue
+        any="$any $v"
+        [ -f "$HERE/bsp/$v/Linux_for_Tegra/$INIT_MARKER" ] && built="$built $v"
+    done
+    if   [ -n "$built" ]; then printf '%s\n' $built | sort -V | tail -1
+    elif [ -n "$any" ];   then printf '%s\n' $any   | sort -V | tail -1
+    fi
+}
+
 cmd_backup() {
     local arg="${1:-}"
     ensure_bsp
@@ -326,8 +348,9 @@ cmd_backup() {
 
 cmd_restore() {
     local arg="${1:-}" dir
-    ensure_bsp
-    [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling in BSP"
+    # Resolve the dump BEFORE choosing a BSP: the restore tooling must match the dump's
+    # L4T generation (R35's l4t_backup_restore vs R36+'s nvrestore — incompatible
+    # partition-map schemas). We read that from the dump, not the (board-tagged) folder name.
     if [ -n "$arg" ]; then                          # name under backups/ or a full path
         if   [ -d "$arg" ];           then dir="$arg"
         elif [ -d "$BACKUPS/$arg" ];  then dir="$BACKUPS/$arg"
@@ -336,6 +359,17 @@ cmd_restore() {
         dir="$(pick_backup)" || die "no backup selected"
     fi
     [ -f "$dir/nvpartitionmap.txt" ] || die "not a backup folder (no nvpartitionmap.txt): $dir"
+    if [ "${JP_GIVEN:-0}" != 1 ]; then              # auto-match the BSP to the dump (unless -j forced)
+        local want; want="$(restore_jp_for "$dir")"
+        if [ -n "$want" ] && [ "$want" != "$JP" ]; then
+            log "dump matches JetPack $want restore tooling — switching from $JP (override with -j)"
+            load_version "$want"
+        elif [ -z "$want" ]; then
+            warn "no BSP matches this dump's L4T generation — using $JP; pass -j <ver> if restore fails"
+        fi
+    fi
+    ensure_bsp
+    [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling in BSP"
     recovery_note
     confirm "DESTRUCTIVE: restore '$(basename "$dir")' onto the board (erases QSPI + NVMe)?"
     rootfs_unmount
