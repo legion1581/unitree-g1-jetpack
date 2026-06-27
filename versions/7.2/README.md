@@ -1,4 +1,4 @@
-# JetPack 7.2 — Go2 carrier (WIP)
+# JetPack 7.2 — Go2 carrier
 
 **L4T 39.2.0** · kernel **6.8.12-1021-tegra** · Ubuntu 24.04
 
@@ -11,24 +11,46 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 
 | step | what it changes |
 |--|--|
-| `10-install-carrier-dtb.sh` | BSP — drop the carrier-patched kernel DTB(s) (USB3 wiring + board-version) |
+| `10-install-carrier-dtb.sh` | BSP — drop the carrier-patched kernel DTB(s) (USB wiring + board-version) |
 | `20-mb2-eeprom-fix.sh` | BSP — MB2 `cvb_eeprom_read_size -> 0x0` (R39 ships 0x100, so it applies) |
 | `30-rootfs-user.sh` | rootfs — user `unitree` / hostname `ubuntu` / autologin |
 | `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.18/24` on **`enP8p1s0`** |
+| `50-force-usb-device-mode.sh` | rootfs — boot unit forcing usb2-0 role → `device` (no CC chip; binds the L4T gadget @ `192.168.55.1`) |
 
 ## Payload
 
 - `version.env` — URLs, board conf, kernel version, user/IP
-- `dtb/` — carrier-patched kernel DTBs:
-  - `tegra234-p3768-0000+p3767-0000-nv.dtb` — standard
-  - `tegra234-p3768-0000+p3767-0000-nv-super.dtb` — Super (used by `--super`)
+- `dtb/` — carrier-patched kernel DTBs (one per module variant **and** Super; the flash
+  conf auto-selects by EEPROM board SKU + `--super`):
+  - `tegra234-p3768-0000+p3767-0000-nv.dtb` — Orin **NX** (SKU 0000)
+  - `tegra234-p3768-0000+p3767-0000-nv-super.dtb` — Orin **NX**, Super
+  - `tegra234-p3768-0000+p3767-0003-nv.dtb` — Orin **Nano 8GB** (SKU 0003) — the Go2 module
+  - `tegra234-p3768-0000+p3767-0003-nv-super.dtb` — Orin **Nano 8GB**, Super
 
 ## Notes
 
-- **L4T 39.2.0 = JetPack 7.2** (kernel 6.8, Ubuntu 24.04). USB3 `padctl` layout is the
-  R36 `/bus@0/...` form.
-- **Super mode (`--super`)** flashes NVIDIA's `jetson-orin-nano-devkit-super` board config
-  (MAXN_SUPER + 40 W, ~100 → 157 TOPS on Orin NX 16 GB).
-- ⚠️ **go2 branch WIP:** the DTBs here are still the **G1** carrier DTBs — swap in the Go2
-  carrier DTBs before flashing a Go2 dock (the USB3 lane wiring differs: G1 puts the
-  recovery lane on `usb3-0`, the Go2 dock keeps it on `usb3-1`).
+- **L4T 39.2.0 = JetPack 7.2** (kernel 6.8, Ubuntu 24.04). Wired NIC is **`enP8p1s0`**.
+
+### Carrier DTB changes (same set as 5.1.6 / 6.2.2, R36/R39 layout)
+
+All four DTBs get the identical Go2-carrier transform — the USB3 wiring fix plus:
+- **`fusb301@25` removed** — the FUSB301 Type-C CC chip is **not populated** on the Go2
+  carrier; node + its OF-graph role-switch link are deleted.
+- **`usb3-0` disabled** — the flashing Type-C exposes no USB3 host; the lane is turned off
+  and dropped from xHCI/XUDC.
+- **`usb2-0` → `mode = "peripheral"`** — device-only (recovery + USB gadget). With no CC
+  chip the role won't auto-resolve, so `50-force-usb-device-mode.sh` drives `role=device`
+  on boot to bind the L4T gadget (`192.168.55.1`).
+
+See **[../../docs/usb-mapping.md](../../docs/usb-mapping.md)** for the full Go2 USB map
+(only the USB-A is USB 3.0; both Type-C ports are USB 2.0).
+
+### Super mode (`--super`)
+
+Flashes NVIDIA's `jetson-orin-nano-devkit-super` board config (MAXN_SUPER + 40 W). TOPS
+boost: **Orin NX 16 GB 100 → 157**, **Orin Nano 8 GB 40 → 67**. Draws much more power —
+confirm the Go2 rail + cooling first.
+
+> ⚠️ Not yet hardware-tested on 7.2. The DTB transform is identical to the
+> hardware-verified 5.1.6 set (same padctl result via `--check`); flash-validate before
+> relying on it.
