@@ -13,7 +13,7 @@
 [![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
 
 > [!IMPORTANT]
-> **This is the Unitree Go2 & R1 EDU JetPack branch (`go2/r1`).**
+> **This is the Unitree Go2 & R1 EDU JetPack branch (`go2-r1`).**
 > The **Go2** and **R1** EDU docks use the **same Jetson carrier**, so this branch serves both.
 > Looking for the **Unitree G1 EDU JetPack**? Then use the
 > **[`g1` branch](https://github.com/legion1581/unitree-jetpack/tree/g1)**.
