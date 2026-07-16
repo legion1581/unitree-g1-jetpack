@@ -15,7 +15,7 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 | `20-mb2-eeprom-fix.sh` | BSP — MB2 `cvb_eeprom_read_size -> 0x0` (R39 ships 0x100, so it applies) |
 | `30-rootfs-user.sh` | rootfs — user `unitree` / hostname `ubuntu` / autologin |
 | `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.18/24` on **`enP8p1s0`** |
-| `50-force-usb-device-mode.sh` | rootfs — boot unit forcing usb2-0 role → `device` (no CC chip; binds the L4T gadget @ `192.168.55.1`) |
+| `50-enable-typec-host.sh` | rootfs — boot unit that makes the recovery Type-C a USB host: drives `PP.06` (VBUS) high **and** sets `usb2-0` role=host |
 
 ## Payload
 
@@ -31,19 +31,27 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 
 - **L4T 39.2.0 = JetPack 7.2** (kernel 6.8, Ubuntu 24.04). Wired NIC is **`enP8p1s0`**.
 
-### Carrier DTB changes (same set as 5.1.6 / 6.2.2, R36/R39 layout)
+### Carrier DTB changes + recovery Type-C host (same approach as 5.1.6 / 6.2.2, R39 layout)
 
-All four DTBs get the identical Go2-carrier transform — the USB3 wiring fix plus:
-- **`fusb301@25` removed** — the FUSB301 Type-C CC chip is **not populated** on the Go2
-  carrier; node + its OF-graph role-switch link are deleted.
-- **`usb3-0` disabled** — the flashing Type-C exposes no USB3 host; the lane is turned off
-  and dropped from xHCI/XUDC.
-- **`usb2-0` → `mode = "peripheral"`** — device-only (recovery + USB gadget). With no CC
-  chip the role won't auto-resolve, so `50-force-usb-device-mode.sh` drives `role=device`
-  on boot to bind the L4T gadget (`192.168.55.1`).
+All four DTBs get the identical Go2-carrier transform:
+- **`usb2-0` → `mode = "otg"`** (from vanilla `peripheral`) with its `usb-role-switch` kept —
+  device-capable so flash-time recovery RNDIS (`usb0`) still binds, but switchable to host.
+- **`usb3-0` enabled** — vanilla ships it disabled; the lane + port are turned on and the
+  phy is added to the xHCI `phys`/`phy-names` (so the recovery Type-C can do SuperSpeed).
+- **`board-version`** stamped (`go2{nx,nano}[-super]-jetpack7.2-robolegion-r39.2.0-…-v2.1`).
 
-See **[../../docs/usb-mapping.md](../../docs/usb-mapping.md)** for the full Go2 USB map
-(only the USB-A is USB 3.0; both Type-C ports are USB 2.0).
+(No `fusb301` node exists in the R39 DTB for this port, so there's nothing to remove — unlike
+the R35/5.1.6 DTB.)
+
+> **Host is a runtime step**, not baked into the DTB — `l4t` flash forces the runtime DTB to
+> equal the recovery-initrd DTB, so a `mode="host"` DTB would break flash-time RNDIS. The DTB
+> ships `otg`; `50-enable-typec-host.sh` promotes the port to host on boot by (1) driving
+> **`PP.06`** (VBUS) high and (2) writing `role=host` to `usb2-0`'s role switch — with VBUS on,
+> that hands `usb3-0`'s SuperSpeed to xHCI. RCM/bootROM recovery is silicon-level, so flashing
+> is unaffected. To use the port as a device/gadget (`192.168.55.1`) instead: stop the unit,
+> `echo device > /sys/class/usb_role/usb2-0-role-switch/role`, `echo 0 > /sys/class/gpio/PP.06/value`.
+
+See **[../../docs/usb-mapping.md](../../docs/usb-mapping.md)** for the full Go2 USB map.
 
 ### Super mode (`--super`)
 
@@ -51,4 +59,6 @@ Flashes NVIDIA's `jetson-orin-nano-devkit-super` board config (MAXN_SUPER + 40 W
 boost: **Orin NX 16 GB 100 → 157**, **Orin Nano 8 GB 40 → 67**. Draws much more power —
 confirm the Go2 rail + cooling first.
 
-> ✅ Hardware-verified on the Go2 dock (JetPack 7.2).
+> ⚠️ Base image hardware-verified on the Go2 dock (JetPack 7.2). The recovery Type-C **host**
+> change (otg + `usb3-0` + `PP.06`/role=host) is verified on 5.1.6 and ported here identically,
+> but is **pending on-hardware confirmation on 7.2** — flash-test it.

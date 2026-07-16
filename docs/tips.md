@@ -11,6 +11,6 @@ desktop) directly — handy for first-boot setup or debugging without SSH.
 
 ![Unitree Go2 dock connectors — the Type-C carrying DisplayPort](go2-dp-typec.png)
 
-> That same Type-C is **USB 2.0 only** for data — its four high-speed pairs are used for
-> DisplayPort, not USB3. The only **USB 3.0** port on the dock is the **USB-A**. See
-> **[usb-mapping.md](usb-mapping.md)**.
+> That **DP Type-C** is **USB 2.0 only** for data — its four high-speed pairs carry
+> DisplayPort, not USB3. For **USB 3.x** use the **USB-A** or the **recovery Type-C** (which
+> becomes a USB3 host at runtime — see **[usb-mapping.md](usb-mapping.md)**).
