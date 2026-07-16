@@ -14,7 +14,7 @@
 > [!IMPORTANT]
 > **This is the Unitree G1 EDU JetPack branch (`g1`).**
 > Looking for the **Unitree Go2 / R1 EDU JetPack**? Then use the
-> **[`go2/r1` branch](https://github.com/legion1581/unitree-jetpack/tree/go2/r1)**.
+> **[`go2-r1` branch](https://github.com/legion1581/unitree-jetpack/tree/go2-r1)**.
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
 the **Unitree G1 custom carrier** (Jetson Orin NX).
