@@ -1,4 +1,4 @@
-# Unitree Go2 JetPack
+# Unitree Go2 / R1 JetPack
 
 <p align="center">
   <img src="docs/header-desktop.png" alt="JetPack 7.2 (Ubuntu 24.04) desktop on the Unitree Go2 dock's Jetson" width="100%">
@@ -13,13 +13,14 @@
 [![JetPack 7.2](https://img.shields.io/badge/JetPack-7.2-2ea44f?style=flat)](versions/7.2/)
 
 > [!IMPORTANT]
-> **This is the Unitree Go2 EDU JetPack branch (`go2`).**
+> **This is the Unitree Go2 & R1 EDU JetPack branch (`go2/r1`).**
+> The **Go2** and **R1** EDU docks use the **same Jetson carrier**, so this branch serves both.
 > Looking for the **Unitree G1 EDU JetPack**? Then use the
 > **[`g1` branch](https://github.com/legion1581/unitree-jetpack/tree/g1)**.
 
 One script to **build, back up, restore, and flash** a custom NVIDIA **JetPack** image for
-the **Unitree Go2 EDU dock** (Jetson **Orin NX** or **Orin Nano** — the flash conf
-auto-selects by module SKU).
+the **Unitree Go2 / R1 EDU dock** — the Go2 and R1 share the same Jetson carrier (**Orin NX**
+or **Orin Nano**; the flash conf auto-selects by module SKU).
 
 ## Supported JetPacks
 
