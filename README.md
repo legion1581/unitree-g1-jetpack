@@ -5,7 +5,7 @@
   <br><sub>JetPack 7.2 (Ubuntu 24.04) desktop on the Unitree Go2 dock's Jetson</sub>
 </p>
 
-[![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat)](VERSION)
+[![version](https://img.shields.io/badge/version-2.1.0-blue?style=flat)](VERSION)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20NX-76b900?style=flat)](#supported-jetpacks)
 [![platform](https://img.shields.io/badge/platform-Jetson%20Orin%20Nano-76b900?style=flat)](#supported-jetpacks)
 [![JetPack 5.1.6](https://img.shields.io/badge/JetPack-5.1.6-2ea44f?style=flat)](versions/5.1.6/)
@@ -52,16 +52,16 @@ Pick one with `-j <ver>`.
   <br><sub><b>MAXN_SUPER available on the Go2 dock</b> (nvpmodel tray menu)</sub>
 </p>
 
-Stock JetPack doesn't run cleanly on the Go2 dock — the USB lanes are wired differently (so
-recovery RNDIS and the device-mode gadget don't come up) and the carrier has **no Type-C CC
-chip**. This repo wraps NVIDIA's BSP with those carrier fixes plus a few rootfs tweaks, so a
-single `-j <ver> flash` gives you a working board.
+Stock JetPack doesn't run cleanly on the Go2 / R1 dock — the USB lanes need patching (for
+flash-time recovery over `usb0`, and to expose the recovery Type-C as a **USB3 host**) and the
+carrier has **no Type-C CC chip**. This repo wraps NVIDIA's BSP with those carrier fixes plus a
+few rootfs tweaks, so a single `-j <ver> flash` gives you a working board.
 
 > Everything is flashed **in place over the USB-C cable** — no need to remove the NVMe
 > SSD from the robot. QSPI and the NVMe rootfs are written over the recovery initrd.
 
 Each image applies a few carrier patches to the **device tree** (USB3 wiring, MB2 boot) and
-the **rootfs** (login user, static IP).
+the **rootfs** (login user, static IP, recovery-Type-C USB3 host).
 
 ## Requirements
 
@@ -86,8 +86,9 @@ it isn't built yet — no separate `init` step needed. Run `init` on its own onl
 you want to (re)build the BSP without flashing.
 
 After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
-**`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2), plus the USB
-device-mode gadget at **`192.168.55.1`** over the flashing Type-C cable.
+**`192.168.123.18`** (on `eth0` for 5.1.6, `enP8p1s0` for 6.2.2 / 7.2). The **recovery Type-C
+comes up as a USB 3.x host** (for a RealSense etc.); to use it as the device-mode gadget
+(**`192.168.55.1`**) instead, see **[docs/usb-mapping.md](docs/usb-mapping.md)**.
 
 > `-j` can also be given as the `GO2_JP` environment variable
 > (e.g. `GO2_JP=5.1.6 ./go2_custom_jetpack.sh init`).
@@ -109,9 +110,10 @@ hardware **recovery-button + power-cycle** method (no SSH): **[docs/recovery-mod
 Hardware notes — **[docs/tips.md](docs/tips.md)**: the **DisplayPort** Type-C connector
 (USB-C → DP/HDMI adapter, to drive a monitor / bring up the UI).
 
-**USB mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: the Go2 dock's three USB
-connectors and which is the only **USB 3.0** port (the USB-A), how the carrier DTB sets up
-device-mode recovery, drops the absent **FUSB301**, and disables the unused SuperSpeed lane.
+**USB mapping** — **[docs/usb-mapping.md](docs/usb-mapping.md)**: the Go2 / R1 dock's three USB
+connectors, how the **recovery Type-C becomes a USB3 host** at runtime (otg DTB + `PP.06` VBUS
++ `role=host`) while staying flashable, why **FUSB301** is dropped, and where it all lives in
+the device tree.
 
 ## Commands
 
