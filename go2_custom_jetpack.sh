@@ -309,6 +309,11 @@ cmd_backup() {
     local arg="${1:-}"
     ensure_bsp
     [ -x "$BR/l4t_backup_restore.sh" ] || die "no backup_restore tooling in BSP"
+    # R35 tooling writes the legacy gpt_1/gpt_2 (gzip) dump schema; R36+ writes the
+    # modern one. Both restore fine (restore auto-matches, and the R35 restore path is
+    # fixed by 60-fix-nvrestore-bugs.sh) — just let the user know which they're minting.
+    [ "${L4T_VER%%.*}" -lt 36 ] && \
+        warn "backing up with the R35 ($JP) tooling — the dump will use the legacy R35 schema; build 6.2.2/7.2 first if you prefer the modern R36+ format (both restore fine)"
     local ts stage final
     ts="$(date +%Y%m%d-%H%M%S)"
     if [ -n "$arg" ]; then                          # explicit name or path -> use as-is

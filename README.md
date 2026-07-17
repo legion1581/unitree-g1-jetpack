@@ -171,6 +171,12 @@ menu to pick from. You can also pass a backup **name** (under `backups/`) or a *
 newest version if none exists) — they operate on whatever is on the device, so one BSP
 serves every version. No version needs to be specified.
 
+`restore` boots the dump **regardless of which JetPack was last flashed** — the R35
+restore tooling is patched (`versions/5.1.6/patches/60-fix-nvrestore-bugs.sh`) to rewrite
+**both** GPT copies and write partitions **byte-exact** (stock R35 skips the secondary GPT
+and `conv=sparse`-writes over the previous flash's bytes, which breaks boot when the prior
+flash was a different L4T generation).
+
 ## Repo layout
 
 ```

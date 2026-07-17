@@ -16,6 +16,7 @@ Named files in [`patches/`](patches/), applied in filename order by `apply_patch
 | `30-rootfs-user.sh` | rootfs — user `unitree` / hostname `ubuntu` / autologin |
 | `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.18/24` on **`eth0`** |
 | `50-enable-typec-host.sh` | rootfs — boot unit that makes the recovery Type-C a USB host: drives `PP.06` (VBUS) high **and** sets `usb2-0` role=host |
+| `60-fix-nvrestore-bugs.sh` | BSP — fixes two R35 `nvrestore_partitions.sh` bugs (secondary GPT written to a nonexistent `/dev/gpt_2`; `conv=sparse` without pre-erase leaves the previous flash's bytes in zero regions) so a `restore` boots **regardless of what was flashed before** |
 
 ## Payload
 
