@@ -26,9 +26,10 @@ and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the
 | `30-rootfs-user.sh` | rootfs — user `unitree` / hostname `ubuntu` / autologin, bypass oem-config |
 | `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.164/24` on **`eth0`** |
 | `50-rootfs-wifi-bt.sh` | rootfs — RTL8852BU WiFi+BT modules + firmware + overlay + `btusb_bak` |
+| `60-fix-nvrestore-bugs.sh` | BSP — fixes two R35 `nvrestore_partitions.sh` bugs (secondary GPT written to a nonexistent `/dev/gpt_2`; `conv=sparse` without pre-erase leaves the previous flash's bytes in zero regions) so a `restore` boots **regardless of what was flashed before** |
 
-10–20 patch the BSP; 30+ run against the extracted rootfs. Add or change a step by
-editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
+10–20 and 60 patch the BSP; 30–50 run against the extracted rootfs. Add or change a step
+by editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
 
 ## Payload
 
