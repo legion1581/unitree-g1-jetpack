@@ -1,0 +1,20 @@
+[Unit]
+Description=Unitree OTA uploader (.upk web UI -> ota_pipe_cli)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# runs as root: installing a .upk runs its module.json Install steps as root via ota_pipe.
+Environment=PORT=8888
+Environment=BIND=0.0.0.0
+Environment=OTA_CLI=/unitree/sbin/ota_pipe_cli
+Environment=OTA_ALIAS=default
+Environment=STAGE_DIR=/var/lib/unitree-ota-uploader/upk
+# Environment=OTA_TOKEN=changeme      # uncomment to require ?token=/X-Token
+ExecStart=/usr/bin/python3 /opt/unitree-ota-uploader/app.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

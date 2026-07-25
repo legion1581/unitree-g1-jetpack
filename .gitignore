@@ -12,3 +12,10 @@
 
 # scratch: vanilla/patched DTB checks
 /tmp/
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# local .upk staging (not distributed via the repo)
+upks/

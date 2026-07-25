@@ -83,6 +83,13 @@ After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
 > `-j` can also be given as the `G1_JP` environment variable
 > (e.g. `G1_JP=5.1.6 ./g1_custom_jetpack.sh init`).
 
+## Post-install: the Unitree stack
+
+The image boots the **Unitree PC4 stack** (`master_service` + `ota_pipe`) and a web
+uploader on **port 8888** out of the box. To finish setup — install the patch and camera
+modules and bring up the **camera stream** — browse to `http://192.168.123.164:8888/` and
+follow **[docs/unitree-stack.md](docs/unitree-stack.md)**.
+
 ## Recovery mode (RCM)
 
 `flash`, `backup`, and `restore` need the NX module in **bootROM recovery (APX)**. The

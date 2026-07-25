@@ -24,11 +24,18 @@ and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the
 | `10-install-carrier-dtb.sh` | BSP — drop the carrier-patched DTB `tegra234-p3768-0000+p3767-0000-nv.dtb` over the stock one (fixes USB3 wiring so recovery RNDIS + host ports work) |
 | `20-mb2-eeprom-fix.sh` | BSP — MB2 `cvb_eeprom_read_size -> 0x0` (carrier has no EEPROM); R36 ships 0x100, so this one applies |
 | `30-rootfs-user.sh` | rootfs — user `unitree` / hostname `ubuntu` / autologin, bypass oem-config |
-| `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.164/24` on **`enP8p1s0`** |
+| `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.164/24` on **`eth0`** |
 | `50-rootfs-wifi-bt.sh` | rootfs — RTL8852BU WiFi+BT modules + firmware + overlay + `btusb_bak` |
+| `70-rootfs-unitree-base.sh` | rootfs — fetch Unitree PC4 bootstrap from CDN; bake master_service + ota_pipe + unitree_patch 1.0.0.2 (SysV enabled) so the stack runs out-of-the-box |
+| `71-rootfs-openssl-1.1.sh` | rootfs — OpenSSL 1.1 libs (Unitree binaries need libcrypto/libssl.so.1.1; 22.04 ships only OpenSSL 3.0) |
+| `72-rootfs-gstreamer.sh` | rootfs — `nvidia-l4t-gstreamer` (nvvidconv/nvv4l2h264enc/nvjpegenc) for video_hub's HW pipeline |
+| `73-rootfs-ota-uploader.sh` | rootfs — the stdlib web uploader (`:8888`) that pushes module `.upk` via ota_pipe_cli + mscli service panel |
+| `74-rootfs-cyclonedds.sh` | rootfs — `libddsc.so.0` (CycloneDDS) that video_hub links against |
+| `80-rootfs-ifnames.sh` | rootfs — systemd `.link`: wired Realtek (`r8168`/`r8169`) → **`eth0`**, RTL8852BU → **`wlan0`** |
 
-10–20 patch the BSP; 30+ run against the extracted rootfs. Add or change a step by
-editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
+10–20 patch the BSP; 30+ run against the extracted rootfs. 70–80 add the Unitree PC4 stack
+(mirrors 7.2; the base at 70 is fetched from Unitree's CDN, not vendored). Add or change a
+step by editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
 
 ## Payload
 

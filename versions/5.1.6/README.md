@@ -27,8 +27,15 @@ and you see the whole patch set. They're sourced with `version.env`, `$LFT` (the
 | `40-rootfs-static-ip.sh` | rootfs — NetworkManager keyfile: `192.168.123.164/24` on **`eth0`** |
 | `50-rootfs-wifi-bt.sh` | rootfs — RTL8852BU WiFi+BT modules + firmware + overlay + `btusb_bak` |
 | `60-fix-nvrestore-bugs.sh` | BSP — fixes two R35 `nvrestore_partitions.sh` bugs (secondary GPT written to a nonexistent `/dev/gpt_2`; `conv=sparse` without pre-erase leaves the previous flash's bytes in zero regions) so a `restore` boots **regardless of what was flashed before** |
+| `70-rootfs-unitree-base.sh` | rootfs — fetch Unitree PC4 bootstrap from CDN; bake master_service + ota_pipe + unitree_patch 1.0.0.2 (SysV enabled) so the stack runs out-of-the-box |
+| `73-rootfs-ota-uploader.sh` | rootfs — the stdlib web uploader (`:8888`) + mscli service panel for pushing module `.upk` |
+| `74-rootfs-cyclonedds.sh` | rootfs — `libddsc.so.0` (CycloneDDS) that video_hub links against |
 
-10–20 and 60 patch the BSP; 30–50 run against the extracted rootfs. Add or change a step
+10–20 and 60 patch the BSP; 30–50 + 70–74 run against the extracted rootfs. 70/73/74 add the
+Unitree PC4 stack (base fetched from Unitree's CDN, not vendored). **No 71/72/80 on 5.1.6:** focal
+20.04 ships OpenSSL 1.1 (`libssl1.1`) natively so master_service needs no shim; the L4T R35 BSP
+`apply_binaries` provides the `nvidia-l4t-gstreamer` HW plugins; and the image already boots
+`net.ifnames=0` with the wired NIC as `eth0`, so no `.link` rename is needed. Add or change a step
 by editing/dropping a `NN-name.sh` in `patches/` — no edits to the main script.
 
 ## Payload

@@ -213,6 +213,9 @@ apply_patches() {
     local pdir="$VDIR/patches" p applied=0
     [ -d "$pdir" ] || { warn "no patches/ in versions/$JP — nothing applied"; return 0; }
     log "applying patches from versions/$JP/patches/"
+    # shared patch helpers (in_image/apt_get/apt_install/fetch_verify) — logic lives under
+    # versions/_lib, sourced once so every patch below can use the verbs.
+    [ -f "$VERSIONS/_lib/rootfs.sh" ] && source "$VERSIONS/_lib/rootfs.sh"
     for p in "$pdir"/*.sh; do
         [ -f "$p" ] || continue                 # glob didn't match -> nothing to do
         log "patch: $(basename "$p")"

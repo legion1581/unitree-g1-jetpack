@@ -4,8 +4,9 @@
 #        binding $NET_IFACE to $STATIC_IP (manual). gateway/dns only if set.
 # WHY:   this image uses NetworkManager (not netplan); the NIC is a point-to-point
 #        LAN, so leaving gateway/dns empty avoids a competing default route.
-# NOTE:  $NET_IFACE must match the booted name — the image boots net.ifnames=0, so
-#        it is 'eth0' (see version.env), NOT the predictable enP8p1s0.
+# NOTE:  $NET_IFACE must match the booted name — 80-rootfs-ifnames.sh renames the wired NIC to
+#        'eth0' via a systemd .link (net.ifnames=0 via extlinux is discarded at flash time), so it
+#        is 'eth0' (see version.env), NOT the predictable enP8p1s0.
 #
 # Sourced by apply_patches() with version.env vars + $LFT $SUDO and helpers in scope.
 
