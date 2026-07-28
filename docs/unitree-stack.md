@@ -30,9 +30,9 @@ plugins. On boot you get:
 
 > The two robot modules — the latest `unitree_patch` and `video_hub` (camera) — are **not**
 > baked in; you install them once after flashing, using the uploader below. Download the
-> module packages for your JetPack version from wherever they're published for you (they're
-> distributed as `.upk` files, e.g. `unitree_patch_pc4_1.0.0.6-*.upk` and
-> `video_hub_pc4_1.0.1.1-*.upk`).
+> module packages **[here](https://disk.yandex.com/d/hDJ2DQMlDnoB2g)** and pick the ones for
+> your JetPack version (they're distributed as `.upk` files, e.g.
+> `unitree_patch_pc4_1.0.0.6-*.upk` and `video_hub_pc4_1.0.1.1-*.upk`).
 
 ---
 

@@ -88,7 +88,8 @@ After it boots: user **`unitree` / `123`**, hostname **`ubuntu`**, wired IP
 The image boots the **Unitree PC4 stack** (`master_service` + `ota_pipe`) and a web
 uploader on **port 8888** out of the box. To finish setup — install the patch and camera
 modules and bring up the **camera stream** — browse to `http://192.168.123.164:8888/` and
-follow **[docs/unitree-stack.md](docs/unitree-stack.md)**.
+follow **[docs/unitree-stack.md](docs/unitree-stack.md)**. The module `.upk` packages are
+**[available here](https://disk.yandex.com/d/hDJ2DQMlDnoB2g)**.
 
 ## Recovery mode (RCM)
 
